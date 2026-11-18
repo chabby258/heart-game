@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>遊戲遊戲遊戲</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="遊戲遊戲遊戲">
+<meta name="theme-color" content="#425B9A">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+@font-face{font-family:"Cubic11";src:url(cubic11.woff2) format("woff2");font-display:block}
+:root{
+  --bg:#F0F0F0;--card:#FFFFFF;--ink:#3E3A39;--muted:#7A726C;
+  --navy:#425B9A;--sky:#76C0EC;--pink:#FF95A5;--green:#91AE6E;--yellow:#F5D35A;
+  --sky-soft:#DCEFFA;--pink-soft:#FFE3E8;--green-soft:#E7EFDC;--navy-soft:#DDE3F1;--yellow-soft:#FFEDB8;
+  --p0:#FF95A5;--p1:#76C0EC;
+  --shadow:5px 5px 0 var(--ink);
+  --font:"Cubic11","PingFang TC","Noto Sans TC","Microsoft JhengHei",monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:var(--font);color:var(--ink);font-size:16px;line-height:1.6;
+  background-color:var(--bg);
+  background-image:linear-gradient(#e2e2e2 1px,transparent 1px),linear-gradient(90deg,#e2e2e2 1px,transparent 1px);
+  background-size:22px 22px;min-height:100vh;
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+button,input{font-family:inherit;font-size:16px;color:var(--ink)}
+button{cursor:pointer}
+
+/* ---------- top ---------- */
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px max(16px,env(safe-area-inset-left,0px)) 10px;max-width:1500px;margin:0 auto}
+.addr{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;background:#fff;border:3px solid var(--ink);border-radius:0;padding:4px 12px;box-shadow:3px 3px 0 var(--ink);font-size:18px;white-space:nowrap;overflow:hidden}
+.addr b{font-weight:400;letter-spacing:2px}
+.addr .net{margin-left:auto;font-size:13px;color:var(--muted)}
+.addr .net.on{color:#3d7a3a}
+.ib{min-width:44px;height:44px;border:3px solid var(--ink);border-radius:0;background:#fff;box-shadow:3px 3px 0 var(--ink);font-size:14px;padding:0 10px}
+.ib:active{transform:translate(3px,3px);box-shadow:none}
+.ib.on{background:var(--green)}
+.ticker{background:var(--navy);color:#fff;border-top:3px solid var(--ink);border-bottom:3px solid var(--ink);overflow:hidden;font-size:13px;line-height:26px;white-space:nowrap}
+.ticker-in{display:inline-flex;animation:tick 40s linear infinite}
+.ticker-in span{padding-right:40px}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* ---------- windows ---------- */
+.win{background:var(--card);border:3px solid var(--ink);border-radius:0;box-shadow:var(--shadow);overflow:hidden}
+.bar{display:flex;align-items:center;gap:6px;background:var(--sky);border-bottom:3px solid var(--ink);padding:5px 10px;font-size:13px;letter-spacing:1px}
+.bar i{width:12px;height:12px;border:2px solid var(--ink);flex:none}
+.bar i:nth-child(1){background:var(--pink)}.bar i:nth-child(2){background:var(--yellow)}.bar i:nth-child(3){background:var(--green)}
+.bar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:4px}
+.bar em{font-style:normal;background:#fff;border:2px solid var(--ink);padding:0 6px;font-size:11px;letter-spacing:3px;line-height:16px}
+.bar .x{flex:none;width:30px;height:26px;border:2px solid var(--ink);background:#fff;font-size:16px;line-height:1;padding:0;box-shadow:2px 2px 0 var(--ink)}
+.bar .x:active{transform:translate(2px,2px);box-shadow:none}
+.bar.pink{background:var(--pink)}.bar.green{background:var(--green)}.bar.yellow{background:var(--yellow)}
+.bar.navy{background:var(--navy);color:#fff}.bar.navy em{color:var(--ink)}
+.wbody{padding:14px}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1500px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-left,0px)) 40px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.side{display:flex;flex-direction:column;gap:18px}
+@media (max-width:980px){.wrap{grid-template-columns:1fr}}
+
+/* ---------- board ---------- */
+.boardBox{position:relative;width:100%;aspect-ratio:2576/1818;user-select:none;-webkit-user-select:none;container-type:inline-size}
+.boardBox img.board{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.token{position:absolute;width:4.4%;transform:translate(-50%,-86%);transition:left .46s steps(6),top .46s steps(6);z-index:6}
+.token.slow{transition:left .9s steps(9),top .9s steps(9)}
+.token .spr{display:block;position:relative;width:100%;aspect-ratio:12/19}
+.token .spr:after{content:"";position:absolute;left:8%;right:8%;bottom:-2px;height:4px;background:rgba(62,58,57,.3)}
+.token .spr svg{display:none;width:100%;height:100%}
+.token .spr[data-f="0"] .f0,.token .spr[data-f="1"] .f1,.token .spr[data-f="2"] .f2{display:block}
+.token{--dir:1}
+.token.left{--dir:-1}
+.token .tag{display:block;margin:3px auto 0;width:max-content;font-size:clamp(9px,1.35cqw,12px);line-height:1.3;padding:0 5px;border:2px solid var(--ink);background:#fff}
+.token.p0 .tag{background:var(--pink)}.token.p1 .tag{background:var(--sky)}
+.token.fly .spr{animation:fly .9s steps(6)}
+.token.hop .spr{animation:hopjump .46s steps(6)}
+@keyframes hopjump{
+  0%{transform:scale(1.12,.82) translateY(8%)}
+  18%{transform:scale(.9,1.12) translateY(-28%) rotate(calc(var(--dir)*-6deg))}
+  50%{transform:translateY(-72%) rotate(calc(var(--dir)*8deg))}
+  80%{transform:translateY(-16%) rotate(calc(var(--dir)*4deg))}
+  92%{transform:scale(1.12,.84) translateY(6%)}
+  100%{transform:none}}
+.token.turn .spr{animation:turnaround .2s steps(4)}
+@keyframes turnaround{0%{transform:scaleX(1)}50%{transform:scaleX(.15) scaleY(1.05)}100%{transform:scaleX(1)}}
+@keyframes fly{50%{transform:translateY(-60%) rotate(-12deg)}}
+.token.me .spr{animation:bob 1s steps(2) infinite}
+@keyframes hop{50%{transform:translateY(-35%)}}
+@keyframes bob{50%{transform:translateY(-10%)}}
+.flag{position:absolute;width:4.2%;transform:translate(-50%,-50%);z-index:5;filter:drop-shadow(2px 2px 0 var(--ink))}
+.flag.h{width:6.6%}
+.flag.p0{background:var(--pink)}.flag.p1{background:var(--sky)}
+.ping{position:absolute;width:9%;aspect-ratio:1;transform:translate(-50%,-50%);border:3px dashed var(--ink);z-index:4;pointer-events:none;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+
+.memo{position:absolute;left:21%;top:80%;width:35.5%;height:19.6%;background:#fff;z-index:3;display:flex;align-items:center;padding-left:2%;clip-path:polygon(0 0,72% 0,72% 22%,100% 22%,100% 100%,0 100%)}
+.memo.open{clip-path:none}
+.memo.open{background:transparent;align-items:flex-start;padding-top:0;top:76%}
+.memoBtn{border:2px solid var(--ink);background:var(--pink-soft);box-shadow:2px 2px 0 var(--ink);font-size:clamp(10px,1.62cqw,15px);padding:2px 10px}
+.memo.open .memoBtn{background:#fff}
+.memoTxt{display:none;border:2px solid var(--ink);background:#fff;box-shadow:2px 2px 0 var(--ink);font-size:clamp(8px,1.55cqw,14px);line-height:1.5;padding:4px 8px;margin-bottom:6px}
+.memo.pix{background:transparent;clip-path:none;top:80%;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding-bottom:1.5%}
+.memo.pix.open .memoTxt{display:block}
+.pxcard{width:60px;height:78px;margin:10px auto 0;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);display:grid;place-items:center;font-size:40px;line-height:1}
+.pxcard.c{background:#B7D39A}.pxcard.f{background:var(--navy);color:#fff}
+.coin{display:inline-block;width:18px;height:18px;vertical-align:-2px;margin-right:5px}
+.coin svg,.flag svg{display:block;width:100%;height:100%}
+.sug{display:flex;flex-wrap:wrap;gap:6px}
+.sug button{border:2px solid var(--ink);background:#fff;font-size:13px;padding:2px 8px}
+#memo{display:none!important}
+.token.mem{width:6.6%}
+.token.mem .spr{aspect-ratio:1}
+.token.mem .spr:after{display:none}
+.token.mem .mface{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;border:3px solid var(--ink);background:#fff;box-shadow:2px 3px 0 var(--ink)}
+.token.mem.p0 .mface{outline:3px solid var(--pink)}.token.mem.p1 .mface{outline:3px solid var(--sky)}
+.token.mem.left .spr{transform:none}
+.boardBox.old .crit,.boardBox.old .build{display:none!important}
+/* ---------- turn ---------- */
+.turn{display:flex;align-items:center;gap:12px}
+.ava{width:62px;flex:none;aspect-ratio:12/10;border:3px solid var(--ink);padding:5px;background:#fff}
+.ava svg{display:block;width:100%;height:100%}
+.ava.p0{background:var(--pink-soft)}.ava.p1{background:var(--sky-soft)}
+.turn .nm{font-size:22px;line-height:1.2}
+.turn small{display:block;font-size:12px;color:var(--muted)}
+.diceRow{display:flex;align-items:center;gap:14px;margin-top:14px}
+.dice{width:72px;height:72px;flex:none;background:#fff;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:9px}
+.dice i{width:12px;height:12px;background:var(--ink);place-self:center;opacity:0}
+.dice i.on{opacity:1}
+.dice.rolling{animation:shake .3s steps(3) infinite}
+@keyframes shake{33%{transform:translate(-3px,-3px)}66%{transform:translate(3px,1px)}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:8px 18px;border-radius:0;border:3px solid var(--ink);background:#fff;box-shadow:3px 3px 0 var(--ink);font-size:16px;line-height:1.3}
+.btn:active{transform:translate(3px,3px);box-shadow:none}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:3px 3px 0 var(--ink)}
+.btn.go{background:var(--pink)}
+.btn.ok{background:var(--green)}
+.btn.blue{background:var(--sky)}
+.btn.yel{background:var(--yellow)}
+.rollBtn{flex:1;font-size:20px;min-height:60px}
+.wait{font-size:13px;color:var(--muted);margin-top:8px;min-height:1em}
+
+/* ---------- players ---------- */
+.pl{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:2px dashed var(--ink)}
+.pl:last-child{border-bottom:0;padding-bottom:0}.pl:first-child{padding-top:0}
+.pl .ava{width:48px;padding:4px}
+.pl .info{flex:1;min-width:0}
+.pl .row1{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.pl .row1 b{font-weight:400;font-size:18px}
+.coins{font-size:22px;letter-spacing:1px}
+
+.meta{font-size:13px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chip{display:inline-flex;align-items:center;border:2px solid var(--ink);padding:0 8px;font-size:12px;background:#fff;line-height:20px}
+.chip.pink{background:var(--pink-soft)}.chip.blue{background:var(--sky-soft)}.chip.yel{background:var(--yellow-soft)}.chip.green{background:var(--green-soft)}
+.scoreBoxes{display:flex;gap:4px;margin-top:4px}
+.scoreBoxes i{width:16px;height:16px;border:2px solid var(--ink);background:#fff}
+.scoreBoxes i.on{background:var(--pink)}
+
+/* ---------- log ---------- */
+.log{margin:0;padding:0 0 0 30px;max-height:220px;overflow:auto;font-size:14px;line-height:1.7}
+.log li::marker{color:var(--muted)}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;background:rgba(62,58,57,.42);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;padding-top:max(16px,env(safe-area-inset-top,0px))}
+.modal.show{display:flex}
+.sheet{width:100%;max-width:460px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;animation:pop .2s steps(3)}
+.sheet .wbody{overflow:auto;text-align:center;padding:18px}
+@keyframes pop{from{transform:scale(.7)}to{transform:scale(1)}}
+.who{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--ink);padding:2px 10px 2px 3px;font-size:14px;background:#fff}
+.who .ava{width:30px;padding:2px;border-width:2px}
+.sheet h2{font-size:26px;font-weight:400;margin:12px 0 6px;line-height:1.35}
+.sheet p{margin:6px 0;font-size:16px}
+.sheet .note{font-size:13px;color:var(--muted)}
+.sheet .big{font-size:30px;margin:8px 0}
+.btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.timer{margin:14px auto 0;width:150px;border:3px solid var(--ink);background:var(--ink);color:#9AF07A;font-size:52px;line-height:1.2;letter-spacing:4px;box-shadow:3px 3px 0 var(--pink)}
+.timer.done{color:var(--pink)}
+.pick{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:14px}
+.pick .btn{padding:0;min-height:48px;font-size:22px}
+.ticket{border:3px dashed var(--ink);background:var(--yellow-soft);padding:10px;margin-top:10px;text-align:left}
+.ticket b{font-weight:400;background:var(--ink);color:#fff;padding:0 6px;margin-right:6px}
+.opt{display:flex;flex-direction:column;gap:10px;margin-top:12px;text-align:left}
+.opt label{font-size:14px;color:var(--muted)}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg .btn{min-height:40px;padding:4px 14px;font-size:15px}
+.seg .btn.sel{background:var(--yellow)}
+.opt input[type=text]{width:100%;border:3px solid var(--ink);padding:8px 10px;background:#fff;font-size:16px}
+.hero{display:block;width:100%;image-rendering:pixelated;border-bottom:3px solid var(--ink)}
+details{border:3px solid var(--ink);margin-top:12px;text-align:left;background:var(--pink-soft)}
+details summary{cursor:pointer;padding:8px 12px;list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary:before{content:"＋ "}
+details[open] summary:before{content:"－ "}
+details .in{padding:0 12px 10px;font-size:15px}
+.rules{text-align:left;font-size:15px}
+.rules h3{font-weight:400;font-size:17px;margin:14px 0 4px;background:var(--sky-soft);padding:2px 8px;border-left:6px solid var(--ink)}
+.rules ul{margin:4px 0;padding-left:22px}
+.tk{display:flex;gap:10px;align-items:flex-start;border-bottom:2px dashed var(--ink);padding:10px 0;text-align:left}
+.tk:last-child{border-bottom:0}
+.tk .ava{width:36px;padding:2px}
+.tk .tx{flex:1}
+.tk .tx small{display:block;color:var(--muted);font-size:12px}
+.tk.done .tx{text-decoration:line-through;opacity:.5}
+.tk button{min-height:36px;padding:2px 12px;font-size:13px}
+
+.toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-160%);background:#fff;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:6px 18px;z-index:70;transition:transform .2s steps(3);max-width:90vw;text-align:center}
+.toast.show{transform:translate(-50%,0)}
+.heartbit{width:22px!important;height:19px!important;border:0!important;background:none!important}.heartbit svg{display:block;width:100%}
+.bit{position:fixed;top:-20px;width:10px;height:10px;border:2px solid var(--ink);z-index:65;pointer-events:none;animation:fall steps(14) forwards}
+@keyframes fall{to{transform:translateY(110vh)}}
+
+/* ---------- critters ---------- */
+.crit{all:unset;position:absolute;z-index:5;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.crit .cs{display:block}.crit .cs svg{display:block;width:100%;height:auto}
+#c_crab .cs{animation:crabwalk 2.4s steps(4) infinite}
+@keyframes crabwalk{25%{transform:translateX(-8%)}75%{transform:translateX(8%)}}
+#c_peng .cs{transform-origin:50% 100%;animation:waddle 1.3s steps(1,end) infinite}
+@keyframes waddle{0%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+.crit.awake:after{content:"!";position:absolute;right:-18%;top:-22%;width:1.6em;height:1.6em;display:grid;place-items:center;background:var(--yellow);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);font-size:clamp(15px,2.84cqw,26px);line-height:1;animation:alert .7s steps(2) infinite;z-index:3}
+@keyframes alert{50%{transform:translateY(-25%) scale(1.15)}}
+.crit.awake .cs{animation:bigjump .7s steps(3) infinite!important}
+.crit.awake:not(.ready):after{background:#fff}
+#c_gacha.awake:after{top:-18%;right:-62%}
+#c_gacha.used:after{top:10%;right:-34%}
+.crit.used .cs{animation:sleep 2.4s steps(2) infinite!important;transform-origin:50% 100%}
+@keyframes sleep{50%{transform:scaleY(.94)}}
+.crit.used:after{content:"Zz";position:absolute;right:-14%;top:-14%;font-size:clamp(11px,2.03cqw,18px);color:var(--navy);background:#fff;border:2px solid var(--ink);padding:0 4px;line-height:1.3;animation:zz 2.4s steps(3) infinite}
+@keyframes zz{50%{transform:translateY(-30%)}}
+.crit.jump .cs{animation:bigjump .5s steps(4)}
+.cb{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:4px;background:#fff;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);font-size:clamp(9px,1.42cqw,14px);padding:2px 8px;white-space:nowrap;line-height:1.4;z-index:7}
+#c_gacha .cb{left:0;transform:none}
+#c_peng .cb{left:0;transform:none}
+/* ---------- onsen / led / build ---------- */
+.onsen{all:unset;position:absolute;left:1%;top:63%;width:12.5%;aspect-ratio:2/1;z-index:4;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.onsen .os svg{display:block;width:100%;height:auto}
+.onsen .cb{left:60%}
+.steam{position:absolute;left:0;right:0;bottom:70%;height:120%;pointer-events:none}
+.steam i{position:absolute;bottom:0;width:7%;aspect-ratio:1;background:#D3DAE3;animation:steam 3s steps(8) infinite;opacity:0}
+.steam i:nth-child(2){left:30%;animation-delay:1s}.steam i:nth-child(3){left:62%;animation-delay:2s}.steam i:nth-child(1){left:12%}.steam i:nth-child(4){left:80%;animation-delay:1.5s}
+@keyframes steam{0%{transform:translateY(0);opacity:0}15%{opacity:.9}100%{transform:translateY(-140%) translateX(20%);opacity:0}}
+.steam.love i{background:none;width:10%}
+.steam.love i:before{content:"";display:block;width:100%;aspect-ratio:7/6;background:var(--pink);clip-path:polygon(0 20%,15% 0,42% 0,50% 15%,58% 0,85% 0,100% 20%,100% 50%,50% 100%,0 50%)}
+.led{position:absolute;left:77.6%;top:1.6%;width:21.4%;z-index:4;background:#2B2A2E;border:4px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:.5% .6%;color:#FFB347;font-size:clamp(9px,1.69cqw,17px);line-height:1.35;overflow:hidden}
+.led:after{content:"";position:absolute;inset:0;background:radial-gradient(transparent 45%,rgba(43,42,46,.55) 70%);background-size:3px 3px;pointer-events:none}
+.led .l1{white-space:nowrap;overflow:hidden;text-overflow:clip;color:#FF8FA8}
+.led .l2{white-space:nowrap;overflow:hidden}
+.led .l2 span{display:inline-block;padding-left:100%;animation:ledrun 14s linear infinite}
+@keyframes ledrun{to{transform:translateX(-100%)}}
+.build{all:unset;position:absolute;left:86.5%;top:73%;width:10.5%;z-index:4;cursor:pointer;display:flex;flex-direction:column;align-items:center;-webkit-tap-highlight-color:transparent}
+.build .bs{display:block;width:100%;position:relative}
+.build .bs svg{display:block;width:100%;height:auto}
+.build.jump .bs{animation:bigjump .5s steps(4)}
+.build.done .bs:before{content:"";position:absolute;left:52%;top:-14%;width:30%;aspect-ratio:7/5;transform:translateX(-50%);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 5' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1h1v1h1V0h1v2h1V1h1V0h1v5H0z' fill='%233E3A39'/%3E%3Cpath d='M1 2h1v1h1V2h1v1h1V2h1v2H1z' fill='%23F5D35A'/%3E%3C/svg%3E") center/contain no-repeat}
+.build.done .bs{animation:turnhop 1s steps(2) infinite}
+.build .bl{margin-top:4px;background:#fff;border:2px solid var(--ink);font-size:clamp(8px,1.28cqw,13px);padding:0 6px;white-space:nowrap;line-height:1.4}
+.build .bubble{bottom:auto;top:-4%;left:auto;right:0;transform:translateY(-100%)}
+.build .bubble:after{left:auto;right:20%}
+#c_peng.awake:after{right:-40%;top:-10%}
+/* ---------- duo ---------- */
+.duo{position:absolute;left:77%;top:73%;width:21%;height:25%;z-index:4;display:flex;align-items:flex-end;justify-content:center;gap:4%}
+.duo .big{all:unset;cursor:pointer;width:32%;display:block;position:relative;-webkit-tap-highlight-color:transparent}
+.duo .big .spr{display:block;width:100%;aspect-ratio:12/19}
+.duo .big .spr svg{display:none;width:100%;height:100%}
+.duo .big .spr[data-f="0"] .f0,.duo .big .spr[data-f="1"] .f1,.duo .big .spr[data-f="2"] .f2{display:block}
+.duo .big:after{content:"";position:absolute;left:10%;right:10%;bottom:-5px;height:6px;background:rgba(62,58,57,.2)}
+.duo .big.idle .spr{animation:bob 1.2s steps(2) infinite}
+.duo .big.p1.idle .spr{animation-delay:.6s}
+.duo .big.turn .spr{animation:turnhop .8s steps(3) infinite}
+.duo .big.jump .spr{animation:bigjump .5s steps(4)}
+@keyframes turnhop{50%{transform:translateY(-12%)}}
+@keyframes bigjump{40%{transform:translateY(-35%)}}
+.duoHeart{width:14%;align-self:center;margin-bottom:6%;animation:blink 1.4s steps(2) infinite}
+.duoHeart svg{display:block;width:100%}
+.bubble{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:6px;background:#fff;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);font-size:clamp(9px,1.42cqw,14px);padding:2px 8px;white-space:nowrap;line-height:1.4;z-index:3}
+.bubble:after{content:"";position:absolute;top:100%;width:8px;height:8px;background:#fff;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:translateY(-4px) rotate(45deg)}
+.bubble.l:after{left:22%}.bubble.r:after{left:70%}
+/* ---------- challenge / badges ---------- */
+.critpic{width:90px;margin:8px auto 0}.critpic.cap{width:70px;animation:pop .4s steps(3)}.critpic svg{display:block;width:100%}
+.chalT{font-size:17px;margin:2px 0 8px}
+.prog{position:relative;height:24px;border:3px solid var(--ink);background:#fff}
+.prog i{position:absolute;left:0;top:0;bottom:0;background:var(--green)}
+.prog span{position:absolute;inset:0;display:grid;place-items:center;font-size:13px}
+.combo{display:flex;align-items:center;gap:4px;margin-top:10px;font-size:13px}
+.combo i{width:16px;height:14px;background:#ddd;clip-path:polygon(0 25%,25% 0,50% 25%,75% 0,100% 25%,100% 55%,50% 100%,0 55%)}
+.combo i.on{background:var(--pink)}
+.stamp{display:inline-block;border:2px solid var(--muted);color:var(--muted);padding:0 6px;font-size:12px;transform:rotate(-6deg)}
+.stamp.ok{border-color:#c0392b;color:#c0392b}
+.book{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+.bdg{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;line-height:1.3;text-align:center}
+.bdg .md{position:relative;width:46px}
+.bdg .md svg{display:block;width:100%}
+.bdg .md b{position:absolute;left:0;right:0;top:46%;text-align:center;font-weight:400;font-size:14px;color:#fff;text-shadow:1px 1px 0 var(--ink)}
+.bdg.off{color:var(--muted)}.bdg.off .md b{color:#999;text-shadow:none}
+.bdg small{font-size:10px;color:var(--muted)}
+.bdg.new .md{animation:blink .6s steps(2) 5}
+.token.crown:before{content:"";position:absolute;left:50%;top:-16%;width:72%;z-index:2;aspect-ratio:7/5;transform:translateX(-50%);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 5' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1h1v1h1V0h1v2h1V1h1V0h1v5H0z' fill='%233E3A39'/%3E%3Cpath d='M1 2h1v1h1V2h1v1h1V2h1v2H1z' fill='%23F5D35A'/%3E%3C/svg%3E") center/contain no-repeat}
+@media (max-width:520px){.book{grid-template-columns:repeat(3,1fr)}}
+/* ---------- memory card ---------- */
+.memcard{border:4px solid var(--ink);background:#fff;box-shadow:5px 5px 0 var(--pink);margin:12px 0 4px;text-align:left;
+  background-image:linear-gradient(#eef6fb 1px,transparent 1px),linear-gradient(90deg,#eef6fb 1px,transparent 1px);background-size:12px 12px}
+.mc-top{display:flex;justify-content:space-between;background:var(--navy);color:#fff;font-size:13px;padding:3px 10px;letter-spacing:1px}
+.mc-duo{display:flex;align-items:center;justify-content:space-around;padding:12px 6px 6px;text-align:center;font-size:15px}
+.mc-duo>div{display:flex;flex-direction:column;align-items:center;gap:2px}
+.mc-duo .ava{width:54px;padding:4px;display:block}
+.mc-duo small{font-size:14px}
+.mc-heart{width:40px}.mc-heart svg{display:block;width:100%}
+.mc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:6px 10px}
+.mc-b{border:2px solid var(--ink);background:var(--yellow-soft);text-align:center;padding:4px 2px;line-height:1.2}
+.mc-b:nth-child(3n+2){background:var(--pink-soft)}.mc-b:nth-child(3n){background:var(--sky-soft)}
+.mc-b b{display:block;font-weight:400;font-size:24px}.mc-b span{font-size:12px}
+.mc-tix{margin:4px 10px;font-size:13px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.mc-tix b{font-weight:400;background:var(--ink);color:#fff;padding:0 6px}
+.mc-tix span{border:2px solid var(--ink);background:#fff;padding:0 6px}
+.mc-foot{text-align:center;font-size:12px;color:var(--muted);padding:6px 0 8px}
+#snow{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:30}
+/* ---------- big dice ---------- */
+.bigDice{position:fixed;inset:0;z-index:45;display:grid;place-items:center;pointer-events:none;background:rgba(62,58,57,.18)}
+.bd{width:170px;height:170px;background:#fff;border:6px solid var(--ink);box-shadow:8px 8px 0 var(--ink);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:20px;grid-area:1/1;box-sizing:border-box}
+.bd i{width:28px;height:28px;background:var(--ink);place-self:center;opacity:0}
+.bd i.on{opacity:1}
+.bd i.red.on{background:var(--pink)}
+.bd.tumble{animation:tumble .9s steps(9) forwards}
+.bd.land{animation:land .35s steps(3)}
+@keyframes tumble{0%{transform:translate(-40vw,-30vh) rotate(-90deg) scale(.5)}30%{transform:translate(-14vw,6vh) rotate(40deg) scale(.9)}55%{transform:translate(4vw,-8vh) rotate(160deg)}80%{transform:translate(-2vw,2vh) rotate(300deg)}100%{transform:translate(0,0) rotate(360deg) scale(1)}}
+@keyframes land{50%{transform:scale(1.15)}}
+.bdn{grid-area:1/1;align-self:center;transform:translateY(130px);background:#fff;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:2px 16px;font-size:22px;opacity:0}
+.bdn.show{opacity:1}
+/* ---------- phone ---------- */
+.dock{display:none}
+.swipe{display:none}
+@media (max-width:700px){
+  .wrap{padding-bottom:110px}
+
+
+
+  body{font-size:15px}
+  .top{padding-top:max(10px,env(safe-area-inset-top,0px))}
+  .addr{font-size:15px;min-width:0;flex-basis:100%}
+  .top .ib{flex:1;font-size:12px;padding:0 4px}
+  .ib{min-width:40px;height:40px;font-size:13px;padding:0 8px}
+  .wrap{padding:12px 10px 150px;gap:16px}
+  .boardWin .bar{display:none}
+  .boardWin{box-shadow:3px 3px 0 var(--ink)}
+  .token{width:5.8%}
+  .token .tag{font-size:9px;padding:0 3px;border-width:1px}
+
+  .flag{width:5.6%}.flag.h{width:7%}
+  #turnWin{display:none}
+  .dock{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:3px solid var(--ink);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));gap:10px;align-items:center}
+  .dock .ava{width:48px;padding:3px}
+  .dock .nm{font-size:16px;line-height:1.2}
+  .dock small{display:block;font-size:11px;color:var(--muted)}
+  .dock .dice{width:54px;height:54px;padding:6px}
+  .dock .dice i{width:9px;height:9px}
+  .dock .rollBtn{min-height:54px;font-size:18px;padding:4px 10px}
+  .sheet{max-height:calc(100vh - 24px)}
+  .sheet h2{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="addr">C:\&gt; <b>遊戲遊戲遊戲</b><span class="net" id="net">單機</span></div>
+  <button class="ib" id="btnTickets">旅行券</button>
+  <button class="ib" id="btnRules">規則</button>
+  <button class="ib" id="btnMusic">音樂 開</button>
+  <button class="ib" id="btnSound">音效 開</button>
+  <button class="ib" id="btnMenu">選單</button>
+</div>
+<div class="ticker" aria-hidden="true"><div class="ticker-in" id="ticker"></div></div>
+
+<div class="wrap">
+  <div class="win boardWin">
+    <div class="bar"><i></i><i></i><i></i><span id="boardTitle">board.exe</span><em>_□×</em></div>
+    <div class="boardBox" id="board">
+      <img class="board" id="boardImg" src="pixel.png" alt="遊戲棋盤">
+      <div class="ping" id="ping" hidden></div>
+      <button class="crit" id="c_gacha" data-c="gacha" style="left:5%;top:79%;width:5.4%" aria-label="扭蛋機"><span class="cb" hidden></span><span class="cs"></span></button>
+      <button class="crit" id="c_crab" data-c="crab" style="left:66.9%;top:5.6%;width:7.4%" aria-label="螃蟹"><span class="cb" hidden></span><span class="cs"></span></button>
+      <button class="crit" id="c_peng" data-c="peng" style="left:14%;top:84%;width:4.2%" aria-label="企鵝"><span class="cb" hidden></span><span class="cs"></span></button>
+      <button class="build" id="build" aria-label="一起堆雪人"><div class="bubble" id="bubble" hidden></div><span class="bs" id="bs"></span><span class="bl" id="bl"></span></button>
+      <div class="memo" id="memo"><div class="memoTxt">1. 林比張先完成一輪，得兩分<br>2. 林前進到與張相同格子，得一分<br>3. 累計五分拿一份神奇獎勵<br>一起解鎖所有獎勵吧！！</div><button class="memoBtn" id="memoBtn">＋ 當時的規則</button></div>
+    </div>
+  </div>
+
+  <p class="swipe">← 左右滑動看整張棋盤 →</p>
+  <div class="side">
+    <div class="win" id="turnWin">
+      <div class="bar pink"><i></i><i></i><i></i><span>turn.exe</span><em>_□×</em></div>
+      <div class="wbody">
+        <div class="turn"><div class="ava" id="tAva"></div><div><small>現在輪到</small><div class="nm" id="tName">-</div></div></div>
+        <div class="diceRow"><div class="dice" id="dice"></div><button class="btn go rollBtn" id="roll">擲骰子</button></div>
+        <div class="wait" id="wait"></div>
+      </div>
+    </div>
+    <div class="win" id="chalWin" hidden>
+      <div class="bar navy"><i></i><i></i><i></i><span>together.exe</span><em>_□×</em></div>
+      <div class="wbody" id="chalBody"></div>
+    </div>
+    <div class="win">
+      <div class="bar green"><i></i><i></i><i></i><span id="plTitle">players.exe</span><em>_□×</em></div>
+      <div class="wbody" id="players"></div>
+    </div>
+    <div class="win">
+      <div class="bar yellow"><i></i><i></i><i></i><span>log.txt</span><em>_□×</em></div>
+      <div class="wbody"><ol class="log" id="log" reversed></ol></div>
+    </div>
+  </div>
+</div>
+
+<div class="dock" id="dock">
+  <div class="ava" id="dAva"></div>
+  <div style="min-width:0;flex:1"><small id="dSub">現在輪到</small><div class="nm" id="dName">-</div></div>
+  <div class="dice" id="dDice"></div>
+  <button class="btn go rollBtn" id="dRoll">擲骰子</button>
+</div>
+
+<div class="modal" id="modal"><div class="win sheet" id="sheet"></div></div>
+<canvas id="snow"></canvas>
+<div class="toast" id="toast"></div>
+<div class="bigDice" id="bigDice" hidden><div class="bd" id="bd"></div><div class="bdn" id="bdn"></div></div>
+
+<script>
+/* ================= 素材 ================= */
+const AVA=[
+`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 10" shape-rendering="crispEdges" aria-hidden="true"><g><rect x="1" y="0" width="2" height="1" fill="#3E3A39"/><rect x="9" y="0" width="2" height="1" fill="#3E3A39"/><rect x="1" y="1" width="1" height="1" fill="#3E3A39"/><rect x="2" y="1" width="1" height="1" fill="#FF95A5"/><rect x="3" y="1" width="6" height="1" fill="#3E3A39"/><rect x="9" y="1" width="1" height="1" fill="#FF95A5"/><rect x="10" y="1" width="1" height="1" fill="#3E3A39"/><rect x="1" y="2" width="1" height="1" fill="#3E3A39"/><rect x="2" y="2" width="8" height="1" fill="#FF95A5"/><rect x="10" y="2" width="1" height="1" fill="#3E3A39"/><rect x="1" y="3" width="1" height="1" fill="#3E3A39"/><rect x="2" y="3" width="2" height="1" fill="#FF95A5"/><rect x="4" y="3" width="1" height="1" fill="#FFFFFF"/><rect x="5" y="3" width="5" height="1" fill="#FF95A5"/><rect x="10" y="3" width="1" height="1" fill="#3E3A39"/><rect x="1" y="4" width="1" height="1" fill="#3E3A39"/><rect x="2" y="4" width="8" height="1" fill="#FFC2CC"/><rect x="10" y="4" width="1" height="1" fill="#3E3A39"/><rect x="0" y="5" width="1" height="1" fill="#3E3A39"/><rect x="1" y="5" width="2" height="1" fill="#B07A55"/><rect x="3" y="5" width="6" height="1" fill="#FFE1CC"/><rect x="9" y="5" width="2" height="1" fill="#B07A55"/><rect x="11" y="5" width="1" height="1" fill="#3E3A39"/><rect x="0" y="6" width="1" height="1" fill="#3E3A39"/><rect x="1" y="6" width="1" height="1" fill="#B07A55"/><rect x="2" y="6" width="1" height="1" fill="#FFE1CC"/><rect x="3" y="6" width="1" height="1" fill="#3E3A39"/><rect x="4" y="6" width="4" height="1" fill="#FFE1CC"/><rect x="8" y="6" width="1" height="1" fill="#3E3A39"/><rect x="9" y="6" width="1" height="1" fill="#FFE1CC"/><rect x="10" y="6" width="1" height="1" fill="#B07A55"/><rect x="11" y="6" width="1" height="1" fill="#3E3A39"/><rect x="0" y="7" width="1" height="1" fill="#3E3A39"/><rect x="1" y="7" width="1" height="1" fill="#B07A55"/><rect x="2" y="7" width="1" height="1" fill="#FF95A5"/><rect x="3" y="7" width="2" height="1" fill="#FFE1CC"/><rect x="5" y="7" width="2" height="1" fill="#3E3A39"/><rect x="7" y="7" width="2" height="1" fill="#FFE1CC"/><rect x="9" y="7" width="1" height="1" fill="#FF95A5"/><rect x="10" y="7" width="1" height="1" fill="#B07A55"/><rect x="11" y="7" width="1" height="1" fill="#3E3A39"/><rect x="0" y="8" width="1" height="1" fill="#3E3A39"/><rect x="1" y="8" width="1" height="1" fill="#B07A55"/><rect x="2" y="8" width="1" height="1" fill="#3E3A39"/><rect x="3" y="8" width="6" height="1" fill="#FFE1CC"/><rect x="9" y="8" width="1" height="1" fill="#3E3A39"/><rect x="10" y="8" width="1" height="1" fill="#B07A55"/><rect x="11" y="8" width="1" height="1" fill="#3E3A39"/><rect x="2" y="9" width="8" height="1" fill="#3E3A39"/></g></svg>`,
+`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 10" shape-rendering="crispEdges" aria-hidden="true"><g><rect x="4" y="0" width="4" height="1" fill="#3E3A39"/><rect x="3" y="1" width="1" height="1" fill="#3E3A39"/><rect x="4" y="1" width="4" height="1" fill="#425B9A"/><rect x="8" y="1" width="1" height="1" fill="#3E3A39"/><rect x="2" y="2" width="1" height="1" fill="#3E3A39"/><rect x="3" y="2" width="6" height="1" fill="#425B9A"/><rect x="9" y="2" width="1" height="1" fill="#3E3A39"/><rect x="1" y="3" width="1" height="1" fill="#3E3A39"/><rect x="2" y="3" width="8" height="1" fill="#425B9A"/><rect x="10" y="3" width="1" height="1" fill="#3E3A39"/><rect x="1" y="4" width="1" height="1" fill="#3E3A39"/><rect x="2" y="4" width="8" height="1" fill="#FFFFFF"/><rect x="10" y="4" width="1" height="1" fill="#3E3A39"/><rect x="1" y="5" width="1" height="1" fill="#3E3A39"/><rect x="2" y="5" width="2" height="1" fill="#7A5A48"/><rect x="4" y="5" width="4" height="1" fill="#FFE1CC"/><rect x="8" y="5" width="2" height="1" fill="#7A5A48"/><rect x="10" y="5" width="1" height="1" fill="#3E3A39"/><rect x="1" y="6" width="1" height="1" fill="#3E3A39"/><rect x="2" y="6" width="1" height="1" fill="#FFE1CC"/><rect x="3" y="6" width="1" height="1" fill="#3E3A39"/><rect x="4" y="6" width="4" height="1" fill="#FFE1CC"/><rect x="8" y="6" width="1" height="1" fill="#3E3A39"/><rect x="9" y="6" width="1" height="1" fill="#FFE1CC"/><rect x="10" y="6" width="1" height="1" fill="#3E3A39"/><rect x="1" y="7" width="1" height="1" fill="#3E3A39"/><rect x="2" y="7" width="1" height="1" fill="#FF95A5"/><rect x="3" y="7" width="2" height="1" fill="#FFE1CC"/><rect x="5" y="7" width="2" height="1" fill="#3E3A39"/><rect x="7" y="7" width="2" height="1" fill="#FFE1CC"/><rect x="9" y="7" width="1" height="1" fill="#FF95A5"/><rect x="10" y="7" width="1" height="1" fill="#3E3A39"/><rect x="2" y="8" width="1" height="1" fill="#3E3A39"/><rect x="3" y="8" width="6" height="1" fill="#FFE1CC"/><rect x="9" y="8" width="1" height="1" fill="#3E3A39"/><rect x="3" y="9" width="6" height="1" fill="#3E3A39"/></g></svg>`];
+const NAMES=['張恩','璿璿'];
+const OLD_NAMES=['吉伊','烏薩奇'],OLD_IMG=['mouse.png','rabbit.png'];
+const memMode=()=>!!S&&S.mode==='memory'&&S.phase!=='setup';
+function avaOf(i){return memMode()?`<img src="${OLD_IMG[i]}" alt="" style="display:block;width:100%;height:100%;object-fit:cover">`:AVA[i]}
+const SPR=[[["","3E3A39","3E3A39","","","","","","","3E3A39","3E3A39",""],["","3E3A39","FF95A5","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","FF95A5","3E3A39",""],["","3E3A39","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","3E3A39",""],["","3E3A39","FF95A5","FF95A5","FFFFFF","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","3E3A39",""],["","3E3A39","FFC2CC","FFC2CC","FFC2CC","FFC2CC","FFC2CC","FFC2CC","FFC2CC","FFC2CC","3E3A39",""],["3E3A39","B07A55","B07A55","FFE1CC","FFE1CC","FFE1CC","FFE1CC","FFE1CC","FFE1CC","B07A55","B07A55","3E3A39"],["3E3A39","B07A55","FFE1CC","3E3A39","FFE1CC","FFE1CC","FFE1CC","FFE1CC","3E3A39","FFE1CC","B07A55","3E3A39"],["3E3A39","B07A55","FF95A5","FFE1CC","FFE1CC","3E3A39","3E3A39","FFE1CC","FFE1CC","FF95A5","B07A55","3E3A39"],["3E3A39","B07A55","3E3A39","FFE1CC","FFE1CC","FFE1CC","FFE1CC","FFE1CC","FFE1CC","3E3A39","B07A55","3E3A39"],["","3E3A39","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","3E3A39",""],["3E3A39","FFF6DC","FFF6DC","FF95A5","FF95A5","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","3E3A39"],["3E3A39","FFF6DC","E3CFA0","FF95A5","FF95A5","E3CFA0","E3CFA0","E3CFA0","E3CFA0","E3CFA0","FFF6DC","3E3A39"],["3E3A39","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","3E3A39"],["3E3A39","FF95A5","3E3A39","E3CFA0","E3CFA0","E3CFA0","E3CFA0","E3CFA0","E3CFA0","3E3A39","FF95A5","3E3A39"],["","3E3A39","3E3A39","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","3E3A39","3E3A39",""],["","","3E3A39","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","FFF6DC","3E3A39","",""],["","","3E3A39","FFFFFF","FFFFFF","3E3A39","3E3A39","FFFFFF","FFFFFF","3E3A39","",""],["","3E3A39","7A5A48","7A5A48","7A5A48","3E3A39","3E3A39","7A5A48","7A5A48","7A5A48","3E3A39",""]],[["","","","","3E3A39","3E3A39","3E3A39","3E3A39","","","",""],["","","","3E3A39","425B9A","425B9A","425B9A","425B9A","3E3A39","","",""],["","3E3A39","3E3A39","425B9A","425B9A","425B9A","425B9A","425B9A","425B9A","3E3A39","3E3A39",""],["","3E3A39","425B9A","425B9A","425B9A","425B9A","425B9A","425B9A","425B9A","425B9A","3E3A39",""],["","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39",""],["","3E3A39","7A5A48","7A5A48","FFE1CC","FFE1CC","FFE1CC","FFE1CC","7A5A48","7A5A48","3E3A39",""],["","3E3A39","FFE1CC","3E3A39","FFE1CC","FFE1CC","FFE1CC","FFE1CC","3E3A39","FFE1CC","3E3A39",""],["","3E3A39","FF95A5","FFE1CC","FFE1CC","3E3A39","3E3A39","FFE1CC","FFE1CC","FF95A5","3E3A39",""],["","","3E3A39","FFE1CC","FFE1CC","FFE1CC","FFE1CC","FFE1CC","FFE1CC","3E3A39","",""],["","3E3A39","FFE07A","FFE07A","FFE07A","FFE07A","FFE07A","FFE07A","FFE07A","FFE07A","3E3A39",""],["3E3A39","76C0EC","76C0EC","FFE07A","FFE07A","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","3E3A39"],["3E3A39","76C0EC","4A8FC4","FFE07A","FFE07A","4A8FC4","4A8FC4","4A8FC4","4A8FC4","4A8FC4","76C0EC","3E3A39"],["3E3A39","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","3E3A39"],["3E3A39","425B9A","3E3A39","4A8FC4","4A8FC4","4A8FC4","4A8FC4","4A8FC4","4A8FC4","3E3A39","425B9A","3E3A39"],["","3E3A39","3E3A39","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","3E3A39","3E3A39",""],["","","3E3A39","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","76C0EC","3E3A39","",""],["","","3E3A39","FFFFFF","FFFFFF","3E3A39","3E3A39","FFFFFF","FFFFFF","3E3A39","",""],["","3E3A39","5B4A44","5B4A44","5B4A44","3E3A39","3E3A39","5B4A44","5B4A44","5B4A44","3E3A39",""]]];
+function sprSvg(i,f){
+  const R=SPR[i].map(r=>r.slice()),ink='3E3A39',shoe=R[17][2];
+  if(f===1){R[17][1]=R[17][2]=R[17][3]=R[17][4]='';R[16][1]=ink;R[16][2]=ink;R[16][3]=shoe;R[16][4]=shoe;R[15][2]=ink;}
+  if(f===2){R[17][7]=R[17][8]=R[17][9]=R[17][10]='';R[16][10]=ink;R[16][9]=ink;R[16][8]=shoe;R[16][7]=shoe;R[15][9]=ink;}
+  const dy=f?-1:0;let r='';
+  R.forEach((row,y)=>row.forEach((c,x)=>{if(c)r+=`<rect x="${x}" y="${y+dy}" width="1" height="1" fill="#${c}"/>`}));
+  return `<svg class="f${f}" xmlns="http://www.w3.org/2000/svg" viewBox="0 -1 12 19" shape-rendering="crispEdges">${r}</svg>`;
+}
+const CRIT={"snow":[["","3E3A39","3E3A39","","3E3A39","3E3A39","","","","","","","","","","","","","","","","","","","","","",""],["3E3A39","FF95A5","FF95A5","3E3A39","FF95A5","FF95A5","3E3A39","","","","","","","","","","","","","","","","","","","","",""],["3E3A39","FF95A5","FFFFFF","FF95A5","FF95A5","FF95A5","3E3A39","","","","","","","","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","","","","","","","",""],["3E3A39","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","3E3A39","","","","","","","","3E3A39","425B9A","425B9A","425B9A","425B9A","3E3A39","","","","","","","",""],["","3E3A39","FF95A5","FF95A5","FF95A5","3E3A39","","","","","","","","","3E3A39","425B9A","425B9A","FFFFFF","425B9A","3E3A39","","","","","","","",""],["","","3E3A39","FF95A5","3E3A39","","","","","","","","","","3E3A39","425B9A","FFFFFF","FFFFFF","FFFFFF","3E3A39","","","","","","","",""],["","","","3E3A39","3E3A39","","","","","","","","","","3E3A39","425B9A","425B9A","FFFFFF","425B9A","3E3A39","","","","","","","",""],["","","","3E3A39","3E3A39","3E3A39","3E3A39","","","","","","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","","","","","",""],["","","","3E3A39","76C0EC","76C0EC","3E3A39","","","","","","","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","","","","","","",""],["","","","3E3A39","FFFFFF","FFFFFF","3E3A39","","","","","","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","","","","","",""],["","","","3E3A39","76C0EC","76C0EC","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","","","","","",""],["","","","3E3A39","76C0EC","76C0EC","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","FF95A5","FF95A5","3E3A39","FFFFFF","FFFFFF","3E3A39","FF95A5","FF95A5","3E3A39","","","","","",""],["","","","3E3A39","3E3A39","3E3A39","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFA45B","FFA45B","FFFFFF","FFFFFF","FFFFFF","3E3A39","","","","","","3E3A39"],["","","","","","","3E3A39","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFA45B","FFA45B","FFFFFF","3E3A39","","","","","","3E3A39","3E3A39"],["","","","","","","","3E3A39","3E3A39","FFFFFF","FFFFFF","FFFFFF","3E3A39","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","3E3A39","","","","3E3A39","3E3A39",""],["","","","","","","","","3E3A39","3E3A39","FFFFFF","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FF95A5","FF95A5","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","","3E3A39","3E3A39","",""],["","","","","","","","","","3E3A39","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FF95A5","FF95A5","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","3E3A39","","",""],["","","","","","","","","","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","","",""],["","","","","","","","","","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","","",""],["","","","","","","","","","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","","",""],["","","","","","","","","","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","","",""],["","","","","","","","","","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","","",""],["","","","","","","","","","","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","","","",""],["","","","","","","","","","","","3E3A39","3E3A39","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","FFFFFF","3E3A39","3E3A39","","","","",""],["","","","","","","","","","","","","","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","","","","","","",""]],"crab":[["","3E3A39","3E3A39","","","","","","","","","","","3E3A39","3E3A39",""],["3E3A39","FF95A5","FF95A5","3E3A39","","","","","","","","","3E3A39","FF95A5","FF95A5","3E3A39"],["3E3A39","FF95A5","FFFFFF","FF95A5","3E3A39","","","","","","","3E3A39","FF95A5","FFFFFF","FF95A5","3E3A39"],["3E3A39","FF95A5","FF95A5","FF95A5","3E3A39","","","","","","","3E3A39","FF95A5","FF95A5","FF95A5","3E3A39"],["","3E3A39","FF95A5","3E3A39","","","3E3A39","","","3E3A39","","","3E3A39","FF95A5","3E3A39",""],["","","3E3A39","FF95A5","3E3A39","","3E3A39","","","3E3A39","","3E3A39","FF95A5","3E3A39","",""],["","","","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","","",""],["","","3E3A39","FF95A5","FF95A5","FFFFFF","3E3A39","FF95A5","FF95A5","3E3A39","FFFFFF","FF95A5","FF95A5","3E3A39","",""],["","3E3A39","FF95A5","FF95A5","FF95A5","3E3A39","3E3A39","FF95A5","FF95A5","3E3A39","3E3A39","FF95A5","FF95A5","FF95A5","3E3A39",""],["","3E3A39","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","3E3A39","3E3A39","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","3E3A39",""],["","","3E3A39","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","FF95A5","3E3A39","",""],["","3E3A39","FFFFFF","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","3E3A39","FFFFFF","3E3A39",""],["","","3E3A39","","","3E3A39","","","","","3E3A39","","","3E3A39","",""]]};
+CRIT.peng=['..AAAAA..','.AKKKKKA.','AKKWWWKKA','AKWAWAWKA','AKPWOWPKA','AKWWWWWKA','KKWWWWWKK','KAWWWWWAK','.AWWWWWA.','.AWWWWWA.','..AAAAA..','.OO...OO.'].map(r=>[...r].map(c=>({A:'3E3A39',K:'2E3550',W:'FFFFFF',O:'FFA45B',P:'FF95A5'}[c]||'')));
+function gridSvg(R){let r='';R.forEach((row,y)=>row.forEach((c,x)=>{if(c)r+=`<rect x="${x}" y="${y}" width="1" height="1" fill="#${c}"/>`}));return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${R[0].length} ${R.length}" shape-rendering="crispEdges">${r}</svg>`}
+CRIT.gacha=['....kkkkkkkk....','..kkggggggggkk..','.kggpgggyggbggk.','.kgpppgyyygbbgk.','kggpppgyyybbbggk','kgGGgbbgppgyyggk','kgGGGbbbpppyyygk','kggGGgbbgppgyggk','kkkkkkkkkkkkkkkk','krrrrrrrrrrrrrrk','krwwwwrrrrsssrrk','krwkkwrrrsskssrk','krwwwwrrrrsssrrk','krrrrrrrrrrrrrrk','krrrkkkkkkrrrrrk','krrrkyyyykrrrrrk','krrrkkkkkkrrrrrk','krrrrrrrrrrrrrrk','kRRRRRRRRRRRRRRk','kkkkkkkkkkkkkkkk','.kk..........kk.'].map(r=>[...r].map(c=>({k:'3E3A39',g:'DCEFFA',p:'FF95A5',y:'F5D35A',b:'76C0EC',G:'91AE6E',r:'FF95A5',R:'E07A8E',w:'FFFFFF',s:'C9C9C9'}[c]||'')));
+const GACHA=[
+ {t:'機會扭蛋',d:'扭出一張機會卡！',fx:'chance',c:'#91AE6E'},
+ {t:'金幣扭蛋',d:'扭蛋裡裝滿愛心幣，領 20 枚',fx:'coin',c:'#F5D35A'},
+ {t:'免罪扭蛋',d:'扭出一面免罪金牌',fx:'free',c:'#F5D35A'},
+ {t:'情話扭蛋',d:'對著對方說一句「今天最喜歡你的地方是……」',fx:'do',c:'#FF95A5'},
+ {t:'抱抱扭蛋',d:'馬上給對方一個 10 秒的抱抱',fx:'timer',sec:10,c:'#FF95A5'},
+ {t:'彈跳扭蛋',d:'扭蛋彈出來嚇了你一跳，往前跳 2 格',fx:'move2',c:'#76C0EC'},
+];
+function capsule(c){return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" shape-rendering="crispEdges"><rect x="3" y="0" width="4" height="1" fill="#3E3A39"/><rect x="1" y="1" width="8" height="1" fill="#3E3A39"/><rect x="0" y="2" width="10" height="6" fill="#3E3A39"/><rect x="1" y="8" width="8" height="1" fill="#3E3A39"/><rect x="3" y="9" width="4" height="1" fill="#3E3A39"/><rect x="3" y="1" width="4" height="1" fill="${c}"/><rect x="1" y="2" width="8" height="3" fill="${c}"/><rect x="1" y="5" width="8" height="3" fill="#fff"/><rect x="3" y="8" width="4" height="1" fill="#fff"/><rect x="2" y="2" width="2" height="1" fill="#fff" opacity=".7"/><rect x="0" y="5" width="10" height="1" fill="#3E3A39"/></svg>`}
+const SPRH=[0,1].map(i=>[0,1,2].map(f=>sprSvg(i,f)).join(''));
+function px(rows,pal){let r='';rows.forEach((row,y)=>[...row].forEach((c,x)=>{if(pal[c])r+=`<rect x="${x}" y="${y}" width="1" height="1" fill="${pal[c]}"/>`}));return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${rows[0].length} ${rows.length}" shape-rendering="crispEdges">${r}</svg>`}
+const COIN=px(['..kkkkk..','.kyyyyyk.','kyppyppyk','kypppppyk','kypppppyk','kyypppyyk','kyyypyyyk','.kyyyyyk.','..kkkkk..'],{k:'#3E3A39',y:'#F5D35A',p:'#FF95A5'});
+const HUT=c=>px(['.....k.....','....kck....','...kccck...','..kccccck..','.kccccccck.','kkkkkkkkkkk','.kwwwwwwwk.','.kwbbwddwk.','.kwbbwddwk.','.kwwwwddwk.','.kkkkkkkkk.'],{k:'#3E3A39',w:'#FFFFFF',b:'#BFE4FA',d:'#F5D35A',c});
+const HOUSE=c=>px(['........kk...','.....k..kpk..','....kck.kk...','...kccckk....','..kccccckk...','.kccccccck...','kkkkkkkkkkk..'.replace('..','kk'),'.kwwwwwwwwwk.','.kwppwwkkkwk.','.kwppwwkddk..'.replace('k..','wk.'),'.kwwwwwkddwk.','.kwwwwwkddwk.','.kkkkkkkkkkk.'],{k:'#3E3A39',w:'#FFFFFF',p:'#FF95A5',d:'#F5D35A',c});
+const HEARTPX=px(['.kk.kk.','kppkppk','kpppppk','.kpppk.','..kpk..','...k...'],{k:'#3E3A39',p:'#FF95A5'});
+const coin=n=>`<span class="coin">${COIN}</span>${n}`;
+
+/* 棋盤座標（原圖 2576×1818） */
+const W=2576,H=1818;
+const PTS=[[1060,330],[750,400],[480,540],[400,840],[440,1060],[985,1395],[1240,1500],[1660,1380],[1960,1120],[2160,820],[2190,500],[1860,350],[1490,390],[1260,600],[930,640],[740,790],[940,1040],[1270,1200],[1560,1110],[1800,860],[1840,640],[1600,720],[1330,840],[1120,880],[1340,1010]];
+const END=24;
+
+/* 格子 */
+const T={
+ 1:{t:'再來一次',d:'再擲一次骰子',k:'again'},
+ 2:{t:'前進三格',d:'往前走三格',k:'move',n:3},
+ 3:{t:'說話結尾加「蛤?」',d:'每句話最後都要加「蛤?」',k:'badge',b:'說話加「蛤?」'},
+ 4:{t:'機會',k:'chance',mt:'空白格',md:'休息一下'},
+ 5:{t:'命運',k:'fate',mt:'空白格',md:'休息一下'},
+ 6:{t:'戴眼罩親親',d:'戴上眼罩，親對方指定的部位',k:'task',kiss:1},
+ 7:{t:'後退三格',d:'往回退三格',k:'move',n:-3},
+ 8:{t:'對方給你骰的數字十倍的$',k:'money'},
+ 9:{t:'聽前奏五秒猜歌名',d:'對方播一首歌的前奏五秒，猜對可以再擲一次',k:'guess',sec:5,win:'again'},
+ 10:{t:'幫對方按摩二十秒',d:'部位由對方決定',k:'task',sec:20},
+ 11:{t:'對方幫你實現一個願望',d:'說吧，想要什麼',k:'task'},
+ 12:{t:'反手吃下一餐',k:'seal'},
+ 13:{t:'不能說話',d:'嘴巴拉上拉鍊',k:'badge',b:'不能說話'},
+ 14:{t:'回到起點',d:'咻～回到起點',k:'start'},
+ 15:{t:'沒錯！請直接前往終點',d:'直接飛到終點',k:'goal'},
+ 16:{t:'舌頭猜字母',d:'用舌頭在對方身上寫一個字母，猜對可以前進兩格',k:'guess',win:'move2'},
+ 17:{t:'被綁小啾啾',d:'綁上小啾啾，遊戲最後要一起拍照',k:'badge',b:'綁小啾啾',until:'game'},
+ 18:{t:'貼額頭十秒',d:'額頭貼額頭，還要加撒嬌',k:'task',sec:10},
+ 19:{t:'對方再骰一次',d:'對方下一回合可以連擲兩次',k:'oppAgain'},
+ 20:{t:'自選前進點數',d:'想走幾格自己選',k:'choose'},
+ 21:{t:'撓對方十秒',d:'部位任選，開始搔癢',k:'task',sec:10},
+ 22:{t:'親親二十秒',d:'親好親滿二十秒',k:'task',sec:20,kiss:1},
+ 23:{t:'彈對方額頭',d:'輕輕彈一下對方額頭',k:'task'},
+};
+/* 大富翁：可以買的地與價格 */
+const MISS={
+ 9:{lines:['好可惜！前奏才剛開始就猜錯了','欸～這首明明很熟的！','差一點點，歌名就在嘴邊'],retry:'再聽 5 秒，再猜一次',pen:'唱一句這首歌給對方聽'},
+ 16:{lines:['舌頭寫得太抽象了吧！','差一點點，這個字母太難了','好癢喔，根本沒辦法專心'],retry:'再寫一次，再猜一次',pen:'讓對方捏捏你的臉'},
+};
+const PRICE={3:40,6:60,9:40,10:40,11:60,12:40,13:40,16:40,17:40,18:40,21:40,22:60,23:40};
+const toll=(t,h)=>PRICE[t]/2*(h?2:1);
+const START_COINS=200,SALARY=50;
+
+/* 機會卡 */
+const CHANCE=[
+ {t:'北海道打工薪水',d:'領 50 枚愛心幣',fx:'coin',n:50},
+ {t:'免罪金牌',d:'收進口袋，之後可以免掉一次過路費或一張命運卡',fx:'free'},
+ {t:'雪地瞬移',d:'直接瞬移到對方所在的格子',fx:'tele'},
+ {t:'交換位置',d:'和對方交換所在的格子',fx:'swap'},
+ {t:'對方請客',d:'對方付你 30 枚',fx:'take',n:30},
+ {t:'雪人幫你蓋房',d:'你的一塊地免費蓋上愛心小屋（還沒有地就領 30 枚）',fx:'freeHouse'},
+ {t:'機場快線',d:'直接搭到終點，領一圈薪水',fx:'goal'},
+ {t:'旅行券・湖之栖',d:'今晚對方幫你吹頭髮',fx:'ticket',day:'12/1 今晚',kind:'gift'},
+ {t:'旅行券・美瑛青池',d:'對方要在青池前對你說一段情話',fx:'ticket',day:'12/3',kind:'gift'},
+ {t:'旅行券・互相挑禮物',d:'互相幫對方挑一個小東西，不能偷看，晚上回飯店再交換',fx:'ticket',day:'12/4',kind:'both'},
+ {t:'旅行券・超商開箱',d:'各拿 500 日圓幫對方買零食，回飯店一起開箱，看誰比較懂對方',fx:'ticket',day:'哪天都可以',kind:'both'},
+ {t:'旅行券・口袋暖手',d:'在外面走路的時候，對方要牽著你的手一起放進他的外套口袋，暖暖地走一段路',fx:'ticket',day:'哪天都可以',kind:'gift'},
+];
+/* 命運卡 */
+const FATE=[
+ {t:'三個優點',d:'馬上說出對方三個優點，說不出來付 20 枚',fx:'virtue'},
+ {t:'模仿秀',d:'模仿對方生氣的樣子 10 秒',fx:'timer',sec:10},
+ {t:'KTV 時間',d:'唱一段副歌給對方聽',fx:'do'},
+ {t:'雪地罰金',d:'付 30 枚給對方',fx:'give',n:30},
+ {t:'在雪地滑倒',d:'後退三格',fx:'move',n:-3},
+ {t:'護照忘在飯店',d:'回到起點',fx:'start'},
+ {t:'說話加「捏」',d:'直到你下次經過終點，每句話結尾都要加「捏」',fx:'badge',b:'說話加「捏」'},
+ {t:'暖暖抱',d:'給對方一個 20 秒的擁抱',fx:'timer',sec:20},
+ {t:'旅行券・拍貼機',d:'在札幌市區的遊戲中心找一台拍貼機一起拍一組，姿勢、濾鏡、貼圖全部由你決定',fx:'ticket',day:'札幌市區',kind:'gift'},
+ {t:'旅行券・旭山動物園',d:'學企鵝走路 10 步給對方看，對方可以錄影',fx:'ticket',day:'12/3',kind:'task'},
+ {t:'旅行券・手稻',d:'一起堆一個雪人，你要幫它取名字並介紹它',fx:'ticket',day:'12/4',kind:'task'},
+ {t:'旅行券・北海道神宮',d:'幫對方買一個御守',fx:'ticket',day:'12/5',kind:'task'},
+];
+
+/* 合作挑戰 */
+const CHAL=[
+ {t:'一起蓋滿 3 間愛心小屋',k:'houses',n:3},
+ {t:'這局親親滿 5 次',k:'kiss',n:5},
+ {t:'兩個人撞在一起 3 次',k:'meet',n:3},
+ {t:'一起買下 6 塊地',k:'lands',n:6},
+ {t:'抽到 3 張旅行券',k:'tix',n:3},
+ {t:'一起完成 12 個指令',k:'task',n:12},
+];
+const chalVal=c=>c.k==='tix'?(S.stats.tix||[]).length:(S.stats[c.k]||0);
+/* 徽章 */
+const BADGES=[
+ {id:'game1',t:'第一局',h:'玩完第一局大富翁',c:'#FF95A5',ch:'1'},
+ {id:'house',t:'愛心小屋',h:'蓋出第一間愛心小屋',c:'#FF95A5',ch:'屋'},
+ {id:'land5',t:'大地主',h:'一局裡兩個人加起來買下 8 塊地',c:'#F5D35A',ch:'地'},
+ {id:'cuddle',t:'好巧好巧',h:'交換或瞬移時發現本來就在一起',c:'#FF95A5',ch:'貼'},
+ {id:'combo3',t:'貼貼連擊',h:'一局裡撞在一起 3 次',c:'#76C0EC',ch:'3'},
+ {id:'crown',t:'貼貼皇冠',h:'一局裡撞在一起 5 次',c:'#F5D35A',ch:'冠'},
+ {id:'sync',t:'默契大爆發',h:'連續兩次擲出同樣的點數',c:'#91AE6E',ch:'默'},
+ {id:'chal',t:'合作達成',h:'完成一次合作挑戰',c:'#91AE6E',ch:'合'},
+ {id:'chal3',t:'最強搭檔',h:'累積完成 3 次合作挑戰',c:'#425B9A',ch:'強'},
+ {id:'seal',t:'反手人生',h:'第一次被封印慣用手',c:'#B7A5E8',ch:'手'},
+ {id:'free',t:'免罪金牌',h:'拿到一面免罪金牌',c:'#F5D35A',ch:'免'},
+ {id:'tix5',t:'旅行券收藏家',h:'累積抽到 5 張旅行券',c:'#76C0EC',ch:'券'},
+ {id:'redeem',t:'說到做到',h:'兌換第一張旅行券',c:'#91AE6E',ch:'兌'},
+ {id:'laps10',t:'繞圈高手',h:'累積繞完 10 圈',c:'#76C0EC',ch:'圈'},
+ {id:'memory',t:'重溫三周年',h:'玩一次回憶模式',c:'#FF95A5',ch:'憶'},
+ {id:'games10',t:'老夫老妻',h:'一起玩滿 10 局',c:'#425B9A',ch:'10'},
+ {id:'friends',t:'動物好朋友',h:'扭蛋機、螃蟹、企鵝都玩過',c:'#91AE6E',ch:'友'},
+];
+function life(k,n=1){S.life[k]=(S.life[k]||0)+n}
+function earn(id){if(S.book[id])return;S.book[id]=new Date().toISOString().slice(0,10);const b=BADGES.find(x=>x.id===id);toast(`獲得徽章：${b.t}`);fx('buy');S.newBadge=id}
+function checkChal(){if(S.chal==null||S.chalDone||S.mode!=='mono')return;const c=CHAL[S.chal];if(chalVal(c)>=c.n){S.chalDone=true;life('chal');toast(`合作挑戰成功：${c.t}！`);fx('win')}}
+function checkBook(){
+  checkChal();
+  const L=S.life,st=S.stats||{};
+  if((L.houses||0)>=1)earn('house');
+  if(S.phase!=='setup'&&Object.keys(S.owner||{}).length>=8)earn('land5');
+  if((L.cuddle||0)>=1)earn('cuddle');
+  if((st.meet||0)>=3&&S.mode==='mono')earn('combo3');
+  if(S.crown)earn('crown');
+  if((L.sync||0)>=1)earn('sync');
+  if((L.chal||0)>=1)earn('chal');if((L.chal||0)>=3)earn('chal3');
+  if(S.sealed.some(Boolean))earn('seal');
+  if((L.free||0)>=1)earn('free');
+  if(S.tickets.length>=5)earn('tix5');
+  if(S.tickets.some(t=>t.done))earn('redeem');
+  if((L.laps||0)>=10)earn('laps10');
+  if((L.memory||0)>=1)earn('memory');
+  if(L.crit_gacha&&L.crit_crab&&L.crit_peng)earn('friends');
+  const g=S.history.filter(x=>x.memo).length;if(g>=1)earn('game1');if(g>=10)earn('games10');
+}
+function medal(b,on){
+  const c=on?b.c:'#D8D6D2';
+  return `<svg viewBox="0 0 16 20" shape-rendering="crispEdges"><rect x="3" y="0" width="3" height="6" fill="${on?'#425B9A':'#bbb'}"/><rect x="10" y="0" width="3" height="6" fill="${on?'#FF95A5':'#bbb'}"/><rect x="5" y="5" width="6" height="1" fill="#3E3A39"/><rect x="3" y="6" width="10" height="1" fill="#3E3A39"/><rect x="2" y="7" width="12" height="1" fill="#3E3A39"/><rect x="1" y="8" width="14" height="9" fill="#3E3A39"/><rect x="2" y="17" width="12" height="1" fill="#3E3A39"/><rect x="3" y="18" width="10" height="1" fill="#3E3A39"/><rect x="5" y="19" width="6" height="1" fill="#3E3A39"/><rect x="5" y="6" width="6" height="1" fill="${c}"/><rect x="3" y="7" width="10" height="1" fill="${c}"/><rect x="2" y="8" width="12" height="9" fill="${c}"/><rect x="3" y="17" width="10" height="1" fill="${c}"/><rect x="5" y="18" width="6" height="1" fill="${c}"/><rect x="4" y="8" width="2" height="1" fill="#fff" opacity=".7"/><rect x="3" y="9" width="1" height="2" fill="#fff" opacity=".7"/></svg>`;
+}
+/* ================= 狀態 ================= */
+let S=null;            // 遊戲狀態（同步用）
+let disp=[0,0];        // 畫面上棋子的位置
+let busy=false;        // 動畫中
+let played=-1;         // 已播放動畫的 seq
+let seat=lsGet('gg_seat')||'';   // '0' '1' 'both'
+let online=false,db=null,gref=null,unsub=null,writing=false,pendingWrite=false;
+let mute=lsGet('gg_mute')==='1';
+let ui={mode:'mono',laps:3,first:'r',lin:0,bet:'',betType:'win'};
+const SUG={win:['決定明天晚餐吃什麼','得到一個願望','指定對方說三句甜言蜜語','明天早上可以多睡十分鐘'],lose:['請贏的人喝一杯飲料','幫贏的人按摩五分鐘','學貓叫三聲','說十次我愛你']};
+
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+const clone=o=>JSON.parse(JSON.stringify(o));
+const $=id=>document.getElementById(id);
+const opp=i=>1-i;
+const P=i=>S.players[i];
+const rnd=n=>1+Math.floor(Math.random()*n);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function blank(keep){
+  return {v:2,seq:0,phase:'setup',mode:'mono',players:[],turn:0,starter:0,owner:{},queue:[],card:null,
+    anim:[],animSeq:-1,fx:[],toasts:[],log:[],decks:{c:[],f:[]},again:false,turnSet:false,
+    lapsGoal:3,bet:'',lin:0,round:1,bankrupt:null,result:null,
+    stats:{kiss:0,task:0,lands:0,houses:0,meet:0,tix:[]},
+    tickets:keep?keep.tickets:[],history:keep?keep.history:[],sealed:keep?keep.sealed:[false,false],
+    book:keep&&keep.book?keep.book:{},life:keep&&keep.life?keep.life:{},chal:null,prevDice:0,crown:false,crit:{},critOn:{}};
+}
+function mkPlayer(i){return {name:NAMES[i],pos:0,coins:START_COINS,laps:0,badges:[],free:0,extra:0,last:0,score:0}}
+
+/* ================= 引擎 ================= */
+function log(s){S.log.push(s);if(S.log.length>150)S.log.shift()}
+function fx(n){S.fx.push(n)}
+function toast(m){S.toasts.push(m)}
+function anim(p,path,jump){if(path.length)S.anim.push({p,path,jump:!!jump})}
+const mono=()=>S.mode==='mono';
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function draw(d){if(!S.decks[d].length)S.decks[d]=shuffle([...Array(12).keys()]);return S.decks[d].pop()}
+
+function lap(i){
+  const p=P(i);p.laps++;life('laps');p.coins+=SALARY;
+  p.badges=p.badges.filter(b=>b.until!=='lap');
+  log(`${p.name} 繞完第 ${p.laps} 圈，領 ${SALARY} 枚薪水`);toast(`${p.name} 繞完第 ${p.laps} 圈 +${SALARY}`);fx('lap');
+}
+function walk(i,n){
+  const p=P(i),path=[];let back=0;
+  if(n>0){
+    let dir=1;
+    for(let k=0;k<n;k++){
+      if(dir>0&&p.pos===END){
+        if(k===0&&mono()){p.pos=0;}          // 繞完一圈後，從起點重新出發
+        else{dir=-1;p.pos=END-1;back++;}      // 超過終點就往回走
+      }else if(dir>0)p.pos++;
+      else{p.pos=Math.max(0,p.pos-1);back++;}
+      path.push(p.pos);
+    }
+    if(back){log(`${p.name} 超過終點 ${back} 格，往回走`);toast(`要剛好走到終點！多出 ${back} 格往回走`);fx('bad')}
+    if(p.pos===END&&mono())lap(i);
+  }else{
+    for(let k=0;k<-n;k++){ if(p.pos<=0)break; p.pos=p.pos===END?END-1:p.pos-1; path.push(p.pos); }
+  }
+  anim(i,path);return path.length;
+}
+function meetUp(cuddle){
+  S.stats.meet=(S.stats.meet||0)+1;if(cuddle)life('cuddle');
+  const m=S.stats.meet;
+  if(m===3){toast('貼貼連擊 ×3！愛心雨來了');fx('hearts');}
+  else if(m===5){S.crown=true;toast('貼貼連擊 ×5！兩個人都戴上皇冠');fx('hearts');}
+  else if(m>=2){toast(`貼貼連擊 ×${m}`);}
+}
+function info(i,title,body){S.queue.unshift({k:'info',p:i,title,body})}
+function jump(i,to){P(i).pos=to;anim(i,[to],true)}
+function pay(from,to,amt){
+  const a=P(from);let got=Math.min(a.coins,amt);
+  if(a.coins<amt){S.bankrupt=from;}
+  a.coins-=got;if(to!=null)P(to).coins+=got;
+  fx(to===from?'coin':'pay');return got;
+}
+function addBadge(i,b,until){const p=P(i);if(!p.badges.some(x=>x.t===b))p.badges.push({t:b,until})}
+
+/* 落地：產生要處理的卡片，放進佇列最前面 */
+function land(i,forward){
+  const p=P(i),o=P(opp(i)),pos=p.pos,list=[];
+  if(!mono()){
+    if(forward&&i===S.lin&&pos===o.pos&&pos!==0&&pos!==END){p.score++;log(`林追上張！同一格 +1 分`);toast('同一格！林 +1 分');fx('coin');checkGift(i)}
+    if(pos===END){list.push({k:'round',p:i});}
+    else if(T[pos])list.push(tileCard(i,pos,'mem'));
+  }else{
+    if(pos!==0&&pos!==END&&pos===o.pos)list.push({k:'meet',p:i});
+    if(T[pos]){
+      const ow=S.owner[pos];
+      if(PRICE[pos]&&ow&&ow.p!==i)list.push({k:'toll',p:i,tile:pos,amt:toll(pos,ow.h)},tileCard(i,pos,''));
+      else if(PRICE[pos]&&ow&&ow.p===i){ if(!ow.h)list.push({k:'house',p:i,tile:pos}); else {toast(`回到自己的愛心小屋，休息一下`)} }
+      else list.push(tileCard(i,pos,PRICE[pos]?'free':''));
+    }
+  }
+  S.queue.unshift(...list);
+}
+function deckCard(i,d){const id=draw(d),card=(d==='c'?CHANCE:FATE)[id];const c={k:'deck',p:i,d,id};if(card.roles)c.r=Math.floor(Math.random()*card.roles.length);return c}
+function tileCard(i,tile,ctx){
+  const t=T[tile];
+  if(!mono()&&(tile===4||tile===5))return {k:'rest',p:i,tile};
+  if(t.k==='chance'||t.k==='fate')return deckCard(i,t.k==='chance'?'c':'f');
+  return {k:'tile',p:i,tile,ctx};
+}
+function checkGift(i){ if(P(i).score>0&&P(i).score%5===0)S.queue.push({k:'gift',p:i,n:P(i).score/5}); }
+
+/* 回合 */
+function roll(){
+  const i=S.turn,p=P(i),v=rnd(6);
+  S.dice=v;p.last=v;fx('dice');log(`${p.name} 擲出 ${v}`);
+  const sync=mono()&&S.prevDice===v;S.prevDice=sync?0:v;
+  walk(i,v);land(i,true);
+  if(sync)S.queue.push({k:'sync',p:i,v});
+}
+function next(){
+  if(S.card||S.phase!=='play')return;
+  if(S.bankrupt!=null){gameOver();return}
+  if(S.queue.length){S.card=S.queue.shift();if(S.card.k==='deck'||S.card.k==='tile')fx('card');if(S.card.k==='deck')fx(S.card.d==='c'?'r_gacha':'r_crab');return}
+  endTurn();
+}
+function wakeCritter(){
+  if(!mono()||S.phase!=='play')return;S.critOn=S.critOn||{};S.crit=S.crit||{};
+  if(Object.keys(S.critOn).some(k=>S.critOn[k]))return;
+  const cand=['gacha','crab','peng'].filter(k=>!S.crit[k]);if(!cand.length)return;
+  if(Math.random()<.22){const k=cand[Math.floor(Math.random()*cand.length)];S.critOn[k]=1;toast(`${CRITS[k].name}好像有話要說……快點點牠！`);fx('crit_'+k)}
+}
+function endTurn(){
+  if(mono()&&S.players.some(p=>p.laps>=S.lapsGoal)){gameOver();return}
+  if(S.turnSet){S.turnSet=false;return}
+  const p=P(S.turn);
+  if(S.again){S.again=false;toast(`${p.name} 再擲一次`)}
+  else if(p.extra>0){p.extra--;toast(`${p.name} 加骰一次`)}
+  else S.turn=opp(S.turn);
+  wakeCritter();
+}
+function assets(i){let a=P(i).coins;for(const t in S.owner){const o=S.owner[t];if(o.p===i)a+=PRICE[t]+(o.h?PRICE[t]:0)}return a}
+function gameOver(){
+  const a=[assets(0),assets(1)];let w;
+  if(S.bankrupt!=null)w=opp(S.bankrupt);else w=a[0]===a[1]?-1:(a[0]>a[1]?0:1);
+  S.result={w,a,bankrupt:S.bankrupt};S.phase='over';
+  const st=S.stats,now=new Date(),dd=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+  S.memo={n:S.history.length+1,d:S.startDate||dd,laps:S.lapsGoal,coins:[P(0).coins,P(1).coins],lands:Object.keys(S.owner).length,houses:st.houses||0,kiss:st.kiss,task:st.task,meet:st.meet||0,tix:(st.tix||[]).slice(),bound:S.players.some(x=>x.badges.some(b=>b.t==='綁小啾啾')),sealed:S.sealed.slice(),chal:S.chal!=null?CHAL[S.chal].t:'',chalDone:!!S.chalDone,sync:st.sync||0,crown:!!S.crown};
+  S.history.push({d:dd,w,a,memo:S.memo});
+  S.card={k:'over'};fx('win');log('這一局結束');
+}
+
+/* ================= 卡片內容（畫面） ================= */
+function cardView(c){
+  const p=P(c.p),o=P(opp(c.p)),t=T[c.tile]||{};
+  let bar='',title='',body='',btns=[],timer=0;
+  const B=(id,l,cls,dis)=>btns.push({id,l,cls,dis});
+  switch(c.k){
+  case 'tile':{
+    bar='tile_'+String(c.tile).padStart(2,'0')+'.exe';
+    const serve=c.ctx==='serve';
+    title=serve?`幫 ${o.name} 做：${t.t}`:t.t;
+    const lapNote=mono()?'直到你下次經過終點':'到這一輪結束';
+    switch(t.k){
+      case 'again':body=`<p>${t.d}</p>`;B('ok','再擲一次','go');break;
+      case 'move':body=`<p>${t.d}</p>`;B('ok','出發','go');break;
+      case 'start':body=`<p>${t.d}</p>`;B('ok','好啦','');break;
+      case 'goal':body=`<p>${t.d}${mono()?'，領一圈薪水':''}</p>`;B('ok','飛過去','go');break;
+      case 'oppAgain':body=`<p>${o.name} 下一回合可以連擲兩次</p>`;B('ok','好喔','go');break;
+      case 'choose':body='<p>想往前走幾格？</p><div class="pick">'+[1,2,3,4,5,6].map(n=>`<button class="btn" data-a="p${n}" ${canAct()?'':'disabled'}>${n}</button>`).join('')+'</div>';break;
+      case 'money':{const amt=p.last*10;body=`<p>${p.name} 這回合擲出 ${p.last}</p><p class="big">${o.name} 給你 ${amt}${mono()?' 枚':' 元'}</p>`+(mono()&&o.coins<amt?`<p class="note">${o.name} 的愛心幣不夠，會破產</p>`:'');B('ok','收下','go');break;}
+      case 'badge':body=`<p>${t.d}</p><p class="note">${t.until==='game'?'持續到遊戲結束':lapNote}</p>`;B('ok','遵命','go');break;
+      case 'task':body=`<p>${t.d}</p>`;timer=t.sec||0;if(timer)B('timer',`開始計時 ${timer} 秒`,'blue');B('ok','完成','ok');break;
+      case 'guess':if(c.second)title='最後一次機會！';body=`<p>${t.d}</p>`;timer=t.sec||0;if(timer)B('timer','前奏計時 5 秒','blue');if(serve)B('ok','完成','ok');else{B('no','猜錯了','');B('yes','猜對了','ok')}break;
+      case 'seal':{
+        const me=S.sealed[c.p],them=S.sealed[opp(c.p)];
+        if(!mono()){body=me?'<p>你已經在反手了，再踩到就換回來</p>':'<p>下一餐改用另一隻手吃（重複踩到就換回來）</p>';B('ok',me?'換回慣用手':'好，反手','go');}
+        else if(!me&&!them){body='<p>慣用手被封印！下一餐要用另一隻手吃。</p><p class="note">封印會一直跟著你，直到有人再踩到這格</p>';B('seal','接受封印','go');}
+        else if(me){body='<p>你身上已經有封印了，選一個：</p>';B('unseal','解除封印','ok');if(!them)B('pass',`把封印傳給 ${o.name}`,'go');else B('keep','繼續封印','');}
+        else{body=`<p>${o.name} 正被封印中，選一個：</p>`;B('free',`幫 ${o.name} 解除`,'ok');B('join',`陪 ${o.name} 一起反手`,'go');}
+        break;}
+    }
+    if(serve){body=`<p>照這格的指令，為 ${o.name} 做一次</p>`+(t.d?`<p class="note">${t.d}</p>`:'');btns=btns.filter(b=>b.id==='timer');B('ok','完成','ok');}
+    if(c.ctx==='free'&&PRICE[c.tile]&&!S.owner[c.tile])body+=`<p class="note">這塊地還沒人買，做完可以花 ${PRICE[c.tile]} 枚買下</p>`;
+    break;}
+  case 'miss':{const m=MISS[c.tile];bar='oops.exe';title='猜錯了～';body=`<p>${m.lines[c.line||0]}</p>`+(c.second?'<p class="note">兩次機會都用完了</p>':'<p class="note">要再給一次機會，還是乾脆認輸？</p>');if(!c.second)B('retry',m.retry,'blue');B('giveup',`認輸：${m.pen}`,'go');break;}
+  case 'crit':{const cr=CRITS[c.c];bar=c.c+'.exe';title=cr.t;body=`<div class="critpic">${gridSvg(CRIT[c.c])}</div><p>${cr.d}</p>`;timer=cr.sec||0;
+    if(c.c==='gacha'){const g=GACHA[c.r||0];title='扭蛋：'+g.t;body=`<div class="critpic cap">${capsule(g.c)}</div><p>${g.d}</p>`;timer=g.sec||0;if(timer)B('timer',`開始計時 ${timer} 秒`,'blue');B('ok',g.fx==='do'||g.fx==='timer'?'完成':'好耶','go');break;}if(timer)B('timer',`開始計時 ${timer} 秒`,'blue');B('ok',cr.btn,'go');break;}
+  case 'sync':bar='sync.exe';title='默契大爆發！';body=`<p>連續兩次都擲出 ${c.v}</p><p class="big">${NAMES[0]} 和 ${NAMES[1]}<br>一起往前走 2 格</p><p class="note">走到哪一格，那格的指令都要照做</p>`;B('ok','一起走！','go');break;
+  case 'info':bar='notice.exe';title=c.title;body=`<p>${c.body}</p>`;B('ok',c.title==='好巧好巧！'?'貼貼完成':'好','ok');break;
+  case 'rest':bar='blank.exe';title='空白格';body='<p>這格是空的，休息一下</p>';B('ok','好','ok');break;
+  case 'meet':bar='meet.exe';title=`撞到 ${o.name} 了！`;body='<p>走到同一格，選一個：</p>';B('coin','向對方收 10 枚','yel');B('kiss','偷親一下','go');break;
+  case 'toll':{const ow=S.owner[c.tile];bar='toll.exe';title=`這是 ${o.name} 的地`;
+    body=`<p>「${T[c.tile].t}」${ow.h?'有愛心小屋，過路費兩倍':''}</p><p class="big">${coin(c.amt)} 枚</p><p class="note">付完過路費，還要做這格的指令</p>`+(p.coins<c.amt?`<p class="note">愛心幣不夠，付了就破產</p>`:'');
+    B('pay',`付 ${c.amt} 枚`,'yel');if(p.free>0)B('free','用免罪金牌（免付錢）','ok');break;}
+  case 'house':bar='house.exe';title='回到自己的地';body=`<p>要在「${T[c.tile].t}」蓋愛心小屋嗎？</p><p class="note">花 ${PRICE[c.tile]} 枚，之後過路費變兩倍（${toll(c.tile,1)} 枚）</p>`;B('no','先不要','');B('yes','蓋！','go',p.coins<PRICE[c.tile]);break;
+  case 'buy':bar='buy.exe';title=`買下「${T[c.tile].t}」？`;body=`<p>價格 ${PRICE[c.tile]} 枚，你有 ${p.coins} 枚</p><p class="note">之後 ${o.name} 踩到要付你 ${toll(c.tile,0)} 枚，還要做這格指令</p>`;B('no','不買','');B('yes','買下','go',p.coins<PRICE[c.tile]);break;
+  case 'deck':{let card=(c.d==='c'?CHANCE:FATE)[c.id];if(card.roles){const r=card.roles[c.r||0];card={...card,t:'旅行券・NPC：'+r.n,day:r.day,d:r.d}}bar=c.d==='c'?'chance.exe':'fate.exe';title=(c.d==='c'?'機會：':'命運：')+card.t;
+    body=`<div class="pxcard ${c.d}">${c.d==='c'?'?':'!'}</div><p>${card.d}</p>`;
+    if(card.fx==='ticket')body=`<div class="pxcard ${c.d}">${c.d==='c'?'?':'!'}</div><div class="ticket"><b>${card.day}</b>${card.kind==='both'?'兩個人一起':card.kind==='gift'?`${o.name} 要為你做`:`你要為 ${o.name} 做`}<br>${card.d}</div><p class="note">收進旅行券，旅行途中再兌換</p>`;
+    if(card.fx==='virtue'){B('fail','說不出來（付 20）','');B('ok','說完了','ok')}
+    else if(card.fx==='ticket')B('ok','收進旅行券','go');
+    else{ if(card.fx==='timer'){timer=card.sec;B('timer',`開始計時 ${card.sec} 秒`,'blue')} B('ok',card.fx==='timer'||card.fx==='do'?'完成':'好','go');}
+    if(c.d==='f'&&p.free>0&&['give','move','start','virtue','badge'].includes(card.fx))B('free','用免罪金牌','ok');
+    break;}
+  case 'round':{bar='goal.exe';const lin=c.p===S.lin;title=`${p.name} 抵達終點！`;body=lin?'<p>林比張先到，+2 分</p>':'<p>這輪張先到終點</p>';if(S.players.some(x=>x.badges.some(b=>b.t==='綁小啾啾')))body+='<p>別忘了被綁小啾啾的要一起拍照</p>';B('ok','下一輪','go');break;}
+  case 'gift':bar='gift.exe';title='神奇獎勵';body=`<p>累計 ${p.score} 分，當時在這裡解鎖了第 ${c.n} 份神奇獎勵</p>`;B('ok','好懷念','go');break;
+  case 'over':{const r=S.result;bar='memory_card.exe';
+    title='玩完一局啦！';
+    body=(r.bankrupt!=null?`<p class="note">${P(r.bankrupt).name} 的愛心幣花光了，這局提早結束</p>`:'')+memCard(S.memo)+'<p class="note">這張回憶卡會收進「選單 → 回憶卡收藏」，也可以直接截圖留念</p>';
+    B('photo','存成照片','yel');B('tickets','看旅行券','blue');B('new','再玩一局','go');break;}
+  }
+  return {bar,title,body,btns,timer};
+}
+
+async function memCardPng(m){
+  try{await document.fonts.load('20px Cubic11')}catch(e){}
+  const F='Cubic11, monospace',ink='#3E3A39';
+  const extra=[];
+  if(m.chal)extra.push(['合作挑戰',m.chal+'　'+(m.chalDone?'【挑戰成功】':'【下次加油】')]);
+  if(m.tix&&m.tix.length)extra.push(['旅行券',m.tix.join('、')]);
+  if(m.sync||m.crown)extra.push(['特別時刻',[m.sync?`默契大爆發 ×${m.sync}`:'',m.crown?'貼貼皇冠':''].filter(Boolean).join('、')]);
+  if(m.bound)extra.push(['小啾啾','被綁的人，一起拍照！']);
+  if(m.sealed&&m.sealed.some(Boolean))extra.push(['封印',m.sealed.map((x,i)=>x?NAMES[i]:'').filter(Boolean).join('、')+' 下一餐要反手吃']);
+  const W=720,H=670+extra.length*64,cv=document.createElement('canvas');cv.width=W*2;cv.height=H*2;
+  const g=cv.getContext('2d');g.scale(2,2);g.imageSmoothingEnabled=false;
+  g.fillStyle='#F0F0F0';g.fillRect(0,0,W,H);
+  g.strokeStyle='#E2E2E2';g.lineWidth=1;for(let x=0;x<W;x+=22){g.beginPath();g.moveTo(x+.5,0);g.lineTo(x+.5,H);g.stroke()}for(let y=0;y<H;y+=22){g.beginPath();g.moveTo(0,y+.5);g.lineTo(W,y+.5);g.stroke()}
+  const X=30,Y=30,CW=W-70,CH=H-70;
+  g.fillStyle='#FF95A5';g.fillRect(X+10,Y+10,CW,CH);g.fillStyle='#fff';g.fillRect(X,Y,CW,CH);
+  g.strokeStyle='#EEF6FB';for(let x=X;x<X+CW;x+=14){g.beginPath();g.moveTo(x+.5,Y);g.lineTo(x+.5,Y+CH);g.stroke()}for(let y=Y;y<Y+CH;y+=14){g.beginPath();g.moveTo(X,y+.5);g.lineTo(X+CW,y+.5);g.stroke()}
+  g.lineWidth=6;g.strokeStyle=ink;g.strokeRect(X,Y,CW,CH);
+  g.fillStyle='#425B9A';g.fillRect(X+3,Y+3,CW-6,50);g.fillStyle='#fff';g.font=`22px ${F}`;g.textBaseline='middle';
+  g.textAlign='left';g.fillText(`MEMORY CARD No.${m.n}`,X+20,Y+29);g.textAlign='right';g.fillText(m.d,X+CW-20,Y+29);
+  const img=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(src)});
+  const sp=[await img(sprSvg(0,0)),await img(sprSvg(1,0))],hp=await img(HEARTPX);
+  const cx=[X+CW*0.26,X+CW*0.74];
+  g.textAlign='center';
+  for(const i of [0,1]){
+    if(sp[i])g.drawImage(sp[i],cx[i]-48,Y+78,96,152);
+    g.fillStyle=ink;g.font=`26px ${F}`;g.fillText(NAMES[i],cx[i],Y+258);
+    g.font=`22px ${F}`;g.fillText(`愛心幣 ${m.coins[i]}`,cx[i],Y+292);
+  }
+  if(hp)g.drawImage(hp,X+CW/2-35,Y+130,70,60);
+  const boxes=[[m.kiss,'次親親','#FFEDB8'],[m.task,'個指令','#FFE3E8'],[m.meet,'次撞在一起','#DCEFFA'],[m.lands,'塊地','#FFEDB8'],[m.houses,'間小屋','#FFE3E8'],[m.laps,'圈','#DCEFFA']];
+  const bw=(CW-40-20*2)/3,bh=96;
+  boxes.forEach(([n,l,c],k)=>{const bx=X+20+(k%3)*(bw+20),by=Y+322+Math.floor(k/3)*(bh+16);g.fillStyle=c;g.fillRect(bx,by,bw,bh);g.lineWidth=4;g.strokeStyle=ink;g.strokeRect(bx,by,bw,bh);g.fillStyle=ink;g.font=`40px ${F}`;g.fillText(String(n),bx+bw/2,by+38);g.font=`18px ${F}`;g.fillText(l,bx+bw/2,by+76)});
+  let y=Y+560;g.textAlign='left';
+  for(const [lab,txt] of extra){
+    g.font=`18px ${F}`;const lw=g.measureText(lab).width+18;g.fillStyle=ink;g.fillRect(X+20,y-16,lw,32);g.fillStyle='#fff';g.fillText(lab,X+29,y);
+    g.fillStyle=ink;let t=txt;const max=CW-60-lw;while(g.measureText(t).width>max&&t.length>2)t=t.slice(0,-2)+'…';
+    if(t!==txt&&t.endsWith('……'))t=t.slice(0,-1);g.fillText(t,X+30+lw,y);y+=64;
+  }
+  g.textAlign='center';g.fillStyle='#7A726C';g.font=`18px ${F}`;g.fillText('遊戲遊戲遊戲 ♡ HOKKAIDO 2026',X+CW/2,Y+CH-28);
+  return cv;
+}
+let dl=null;
+async function showPhoto(m){
+  const cv=await memCardPng(m);const url=cv.toDataURL('image/png');photoBlob=await new Promise(r=>cv.toBlob(r,'image/png'));
+  photoUrl=url;photoName=`回憶卡_No${m.n}_${m.d.replace(/\./g,'')}.png`;localModal='photo';$('sheet').dataset.k='';renderModal();
+}
+let photoUrl='',photoName='',photoBack=null,photoBlob=null;
+function photoView(){
+  return winHtml('photo.exe','pink',`<h2>存成照片</h2><img src="${photoUrl}" alt="回憶卡" style="display:block;width:100%;border:3px solid var(--ink);margin-top:8px">
+  <p class="note">手機：長按上面的圖片，選「加入照片」或「儲存圖片」就會存進相簿；電腦：按「下載圖片檔」</p>
+  <div class="btns"><a class="btn go" href="${photoUrl}" download="${photoName}" style="text-decoration:none;color:inherit">下載圖片檔</a><button class="btn" data-l="closephoto">返回</button></div>`);
+}
+function memCard(m){
+  if(!m)return '';
+  const box=(n,l)=>`<div class="mc-b"><b>${n}</b><span>${l}</span></div>`;
+  return `<div class="memcard"><div class="mc-top"><span>MEMORY CARD No.${m.n}</span><span>${m.d}</span></div>
+  <div class="mc-duo"><div><span class="ava p0">${AVA[0]}</span>${NAMES[0]}<small>${coin(m.coins[0])}</small></div><div class="mc-heart">${HEARTPX}</div><div><span class="ava p1">${AVA[1]}</span>${NAMES[1]}<small>${coin(m.coins[1])}</small></div></div>
+  <div class="mc-grid">${box(m.kiss,'次親親')}${box(m.task,'個指令')}${box(m.meet,'次撞在一起')}${box(m.lands,'塊地')}${box(m.houses,'間小屋')}${box(m.laps,'圈')}</div>
+  ${m.tix.length?`<div class="mc-tix"><b>抽到的旅行券</b>${m.tix.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
+  ${m.chal?`<div class="mc-tix"><b>合作挑戰</b><span>${m.chal}</span><span class="stamp ${m.chalDone?'ok':''}">${m.chalDone?'挑戰成功':'下次加油'}</span></div>`:''}
+  ${m.sync||m.crown?`<div class="mc-tix"><b>特別時刻</b>${m.sync?`<span>默契大爆發 ×${m.sync}</span>`:''}${m.crown?'<span>貼貼皇冠</span>':''}</div>`:''}
+  ${m.bound?'<div class="mc-tix"><b>小啾啾</b><span>被綁的人，現在一起拍照！</span></div>':''}
+  ${m.sealed&&m.sealed.some(Boolean)?`<div class="mc-tix"><b>封印</b><span>${m.sealed.map((x,i)=>x?NAMES[i]:'').filter(Boolean).join('、')} 下一餐要反手吃</span></div>`:''}
+  <div class="mc-foot">遊戲遊戲遊戲 ♡ HOKKAIDO 2026</div></div>`;
+}
+/* ================= 卡片動作 ================= */
+function choose(a){
+  const c=S.card,i=c.p,p=P(i),o=P(opp(i));
+  if(a==='timer'){c.timerAt=Date.now();return;}
+  if(c.k==='over'){ if(a==='new'){const k=S;S=blank(k);S.seq=k.seq;S.phase='setup';} return; }
+  S.card=null;
+  switch(c.k){
+  case 'tile':{
+    const t=T[c.tile];
+    if(c.ctx==='serve'){S.stats.task++;if(t.kiss)S.stats.kiss++;log(`${p.name} 幫 ${o.name} 做了「${t.t}」`);break;}
+    switch(t.k){
+      case 'again':if(i===S.turn)S.again=true;else{p.extra++;toast(`${p.name} 下一回合可以多擲一次`)}break;
+      case 'move':if(!walk(i,t.n)){info(i,'哎呀，走不動','你已經在起點了，沒辦法再後退');break}land(i,t.n>0);break;
+      case 'start':if(p.pos===0){info(i,'本來就在起點','你已經在起點了，不用回去');break}jump(i,0);log(`${p.name} 回到起點`);break;
+      case 'goal':jump(i,END);if(mono())lap(i);else land(i,false);break;
+      case 'oppAgain':o.extra++;break;
+      case 'choose':{const n=+a.slice(1);log(`${p.name} 選擇前進 ${n} 格`);walk(i,n);land(i,true);break;}
+      case 'money':{const amt=p.last*10;if(mono())pay(opp(i),i,amt);log(`${o.name} 給 ${p.name} ${amt}`);fx('coin');break;}
+      case 'badge':addBadge(i,t.b,t.until||(mono()?'lap':'round'));break;
+      case 'task':S.stats.task++;if(t.kiss)S.stats.kiss++;break;
+      case 'guess':if(a!=='yes'){S.queue.unshift({k:'miss',p:i,tile:c.tile,ctx:c.ctx,second:!!c.second,line:Math.floor(Math.random()*MISS[c.tile].lines.length)});break}if(a==='yes'){S.stats.task++;if(t.win==='again'){S.again=true;log(`${p.name} 猜對了，再擲一次`)}else{log(`${p.name} 猜對了，前進兩格`);walk(i,2);land(i,true)}}break;
+      case 'seal':{
+        if(!mono()){S.sealed[i]=!S.sealed[i];log(S.sealed[i]?`${p.name} 下一餐反手吃`:`${p.name} 換回慣用手`);break;}
+        if(a==='seal'){S.sealed[i]=true;log(`${p.name} 的慣用手被封印`)}
+        if(a==='unseal'){S.sealed[i]=false;log(`${p.name} 解除封印`)}
+        if(a==='pass'){S.sealed[i]=false;S.sealed[opp(i)]=true;log(`${p.name} 把封印傳給 ${o.name}`);fx('bad')}
+        if(a==='free'){S.sealed[opp(i)]=false;log(`${p.name} 幫 ${o.name} 解除封印`)}
+        if(a==='join'){S.sealed[i]=true;log(`${p.name} 陪 ${o.name} 一起反手`)}
+        break;}
+    }
+    if(c.ctx==='free'&&p.pos===c.tile&&!S.owner[c.tile]&&S.phase==='play'&&!(S.queue[0]&&S.queue[0].k==='miss'))S.queue.unshift({k:'buy',p:i,tile:c.tile});
+    break;}
+  case 'meet':meetUp();fx('kiss');if(a==='coin'){pay(opp(i),i,10);log(`${p.name} 撞到 ${o.name}，收 10 枚`)}else{S.stats.kiss++;log(`${p.name} 撞到 ${o.name}，偷親一下`)}break;
+  case 'toll':
+    if(a==='pay'){pay(i,opp(i),c.amt);log(`${p.name} 付給 ${o.name} ${c.amt} 枚過路費`)}
+    else if(a==='free'){p.free--;log(`${p.name} 用免罪金牌免掉過路費`);fx('coin')}
+    break;
+  case 'house':if(a==='yes'){p.coins-=PRICE[c.tile];S.owner[c.tile].h=1;S.stats.houses=(S.stats.houses||0)+1;life('houses');log(`${p.name} 在「${T[c.tile].t}」蓋了愛心小屋`);fx('buy')}break;
+  case 'buy':if(a==='yes'){p.coins-=PRICE[c.tile];S.owner[c.tile]={p:i,h:0};S.stats.lands++;log(`${p.name} 買下「${T[c.tile].t}」`);fx('buy')}break;
+  case 'deck':{
+    let card=(c.d==='c'?CHANCE:FATE)[c.id];if(card.roles){const r=card.roles[c.r||0];card={...card,t:'旅行券・NPC：'+r.n,day:r.day,d:r.d}}
+    if(a==='free'){p.free--;log(`${p.name} 用免罪金牌躲過「${card.t}」`);fx('coin');break;}
+    log(`${p.name} 抽到${c.d==='c'?'機會':'命運'}「${card.t}」`);
+    switch(card.fx){
+      case 'coin':p.coins+=card.n;fx('coin');break;
+      case 'free':p.free++;life('free');fx('coin');break;
+      case 'tele':if(p.pos===o.pos){anim(i,[p.pos]);anim(opp(i),[o.pos]);meetUp(true);fx('coin');info(i,'好巧好巧！',`瞬移完才發現，你和 ${o.name} 本來就在同一格<br>那就貼貼一下吧`);break}jump(i,o.pos);land(i,false);break;
+      case 'swap':{if(p.pos===o.pos){anim(i,[p.pos]);anim(opp(i),[o.pos]);meetUp(true);fx('coin');info(i,'好巧好巧！',`換來換去還是站在一起<br>${p.name} 和 ${o.name} 貼貼一下吧`);break}const a1=p.pos,b1=o.pos;p.pos=b1;o.pos=a1;anim(i,[b1],true);anim(opp(i),[a1],true);land(opp(i),false);land(i,false);break;}
+      case 'take':pay(opp(i),i,card.n);break;
+      case 'give':pay(i,opp(i),card.n);break;
+      case 'freeHouse':{const mine=Object.keys(S.owner).filter(t=>S.owner[t].p===i&&!S.owner[t].h).sort((x,y)=>PRICE[y]-PRICE[x]);if(mine.length){S.owner[mine[0]].h=1;S.stats.houses=(S.stats.houses||0)+1;life('houses');log(`「${T[mine[0]].t}」蓋好愛心小屋`);fx('buy')}else{p.coins+=30;fx('coin')}break;}
+      case 'goal':jump(i,END);lap(i);break;
+      case 'ticket':(S.stats.tix=S.stats.tix||[]).push(card.t.replace('旅行券・',''));S.tickets.push({id:Date.now()+''+Math.random().toString(36).slice(2,6),h:i,kind:card.kind,day:card.day,t:card.t.replace('旅行券・',''),d:card.d,done:false});fx('buy');break;
+      case 'virtue':if(a==='fail')pay(i,opp(i),20);else S.stats.task++;break;
+      case 'timer':case 'do':S.stats.task++;break;
+      case 'move':if(!walk(i,card.n)){info(i,'哎呀，走不動','你已經在起點了，沒辦法再後退');break}land(i,card.n>0);break;
+      case 'start':if(p.pos===0){info(i,'本來就在起點','你已經在起點了，不用回去');break}jump(i,0);break;
+      case 'badge':addBadge(i,card.b,'lap');break;
+    }
+    break;}
+  case 'round':{
+    if(i===S.lin){p.score+=2;log('林比張先完成一輪 +2 分');checkGift(i)}
+    S.round++;S.starter=opp(S.starter);S.turn=S.starter;S.turnSet=true;
+    S.players.forEach(x=>{x.pos=0;x.extra=0;x.badges=x.badges.filter(b=>b.until==='game')});
+    anim(0,[0],true);anim(1,[0],true);S.queue=S.queue.filter(q=>q.k==='gift');
+    log(`第 ${S.round} 輪開始，${P(S.turn).name} 先擲`);break;}
+  case 'gift':case 'rest':case 'info':break;
+  case 'crit':{if(c.c==='gacha'){const g=GACHA[c.r||0];log(`${p.name} 扭到「${g.t}」`);if(g.fx==='chance')S.queue.unshift(deckCard(i,'c'));else if(g.fx==='coin'){p.coins+=20;fx('coin')}else if(g.fx==='free'){p.free++;life('free');fx('coin')}else if(g.fx==='move2'){walk(i,2);land(i,true)}else{S.stats.task++;if(g.fx==='timer')S.stats.kiss=S.stats.kiss}}else if(c.c==='crab'){p.coins+=10;fx('coin');S.queue.unshift(deckCard(i,'f'))}else{p.free++;life('free');S.stats.task++;fx('coin');toast(`${p.name} 拿到一面免罪金牌`)}break;}
+  case 'sync':life('sync');S.stats.sync=(S.stats.sync||0)+1;log(`默契大爆發！${NAMES[0]} 和 ${NAMES[1]} 一起前進 2 格`);walk(0,2);walk(1,2);fx('lap');land(opp(S.turn),true);land(S.turn,true);break;
+  case 'miss':{const t=T[c.tile];
+    if(a==='retry'){S.queue.unshift({k:'tile',p:i,tile:c.tile,ctx:c.ctx,second:true});log(`${p.name} 再猜一次`);}
+    else{log(`${p.name} 認輸：${MISS[c.tile].pen}`);S.stats.task++;}
+    break;}
+  }
+}
+
+/* ================= 動作派送 ================= */
+function canAct(){
+  if(!S||busy)return false;
+  if(seat==='both'||!online)return true;
+  if(S.phase!=='play')return true;
+  const who=S.card?S.card.p:S.turn;
+  return String(who)===seat;
+}
+function act(fn){
+  if(!canAct())return;
+  unlockAudio();
+  S=clone(S);S.anim=[];S.fx=[];S.toasts=[];
+  fn();next();if(S.life)checkBook();
+  S.seq++;S.animSeq=S.seq;S.at=Date.now();
+  save();show();
+}
+function save(){
+  if(online&&gref){pendingWrite=true;flush();}
+  else lsSet('gg_local_v3',JSON.stringify(S));
+}
+async function flush(){
+  if(writing||!pendingWrite)return;writing=true;pendingWrite=false;
+  try{await gref.set({state:JSON.stringify(S),seq:S.seq,at:Date.now()})}catch(e){flashToast('連線寫入失敗，再試一次')}
+  writing=false;if(pendingWrite)flush();
+}
+
+/* ================= 畫面 ================= */
+const tokens=[0,1].map(i=>{const el=document.createElement('div');el.className='token p'+i;el.innerHTML=`<span class="spr" data-f="0">${SPRH[i]}</span><span class="tag">${NAMES[i]}</span>`;$('board').appendChild(el);return el});
+const walkers={};
+function walkOn(key,on,el){
+  clearInterval(walkers[key]);walkers[key]=null;el.dataset.f='0';
+  if(on){let k=0;const seq=['1','0','2','0'];walkers[key]=setInterval(()=>{el.dataset.f=seq[k++%4]},130)}}
+function follow(i){const w=$('board').parentElement;if(!w||w.scrollWidth<=w.clientWidth+4)return;const x=PTS[disp[i]][0]/W*$('board').clientWidth;w.scrollTo({left:x-w.clientWidth/2,behavior:'smooth'})}
+function place(){
+  [0,1].forEach(i=>{
+    let [x,y]=PTS[disp[i]];
+    if(disp[0]===disp[1]){x+=i?50:-50}
+    tokens[i].style.left=(x/W*100)+'%';tokens[i].style.top=(y/H*100)+'%';
+  });
+}
+const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function dice(n){const h=[...Array(9)].map((_,k)=>`<i class="${PIPS[n||6].includes(k)?'on':''}"></i>`).join('');$('dice').innerHTML=h;$('dDice').innerHTML=h}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function playAnim(list){
+  for(const m of list){
+    if(m.jump){tokens[m.p].classList.add('slow','fly');disp[m.p]=m.path[m.path.length-1];place();sfx('jump');await sleep(950);tokens[m.p].classList.remove('slow','fly');}
+    else{for(const pos of m.path){const ox=PTS[disp[m.p]][0],nx=PTS[pos][0];if(nx!==ox){const L=nx<ox;if(L!==tokens[m.p].classList.contains('left')){tokens[m.p].classList.toggle('left',L);tokens[m.p].classList.remove('hop');tokens[m.p].classList.add('turn');await sleep(200);tokens[m.p].classList.remove('turn')}}tokens[m.p].classList.remove('hop');void tokens[m.p].offsetWidth;tokens[m.p].classList.add('hop');disp[m.p]=pos;place();follow(m.p);duoHop(m.p);sfx('step');await sleep(490);}tokens[m.p].classList.remove('hop');}
+  }
+}
+function show(){
+  if(!S)return;
+  if(S.animSeq===S.seq&&played!==S.seq){
+    played=S.seq;
+    const list=S.anim||[],fxs=S.fx||[],ts=S.toasts||[];
+    if(fxs.includes('dice')){rollDiceFx(S.dice);say(S.anim.length?S.anim[0].p:S.turn,'dice');bigDice(S.dice,P(S.anim.length?S.anim[0].p:S.turn).name)}
+    busy=true;render();
+    (async()=>{
+      if(fxs.includes('dice'))await sleep(1750);
+      await playAnim(list);
+      busy=false;render();
+      fxs.filter(f=>f!=='dice').forEach((f,k)=>setTimeout(()=>sfx(f),k*120));
+      ts.forEach((t,k)=>setTimeout(()=>flashToast(t),k*1300));
+      if(fxs.includes('win'))bits(50);
+      if(fxs.includes('lap'))bits(18);
+      if(fxs.includes('hearts'))hearts(36);
+      duoReact(fxs);
+      ['gacha','crab','peng'].forEach(k=>{if(fxs.includes('crit_'+k))critSay(k,CRITS[k].ready+'！')});
+      if(fxs.includes('r_gacha'))critSay('gacha',['（喀啦）機會！','好運來了'][Math.floor(Math.random()*2)]);
+      if(fxs.includes('r_crab'))critSay('crab',['命運之夾！','夾夾夾','緊張嗎？'][Math.floor(Math.random()*3)]);
+    })();
+  }else render();
+}
+function bigDice(v,who){
+  const box=$('bigDice'),bd=$('bd'),n=$('bdn');
+  const face=k=>[...Array(9)].map((_,j)=>`<i class="${PIPS[k].includes(j)?'on':''} ${k===1?'red':''}"></i>`).join('');
+  box.hidden=false;n.classList.remove('show');bd.className='bd tumble';
+  let t=0;const h=setInterval(()=>{bd.innerHTML=face(rnd(6));if(++t>8){clearInterval(h);bd.innerHTML=face(v);bd.className='bd land';n.textContent=`${who} 擲出 ${v}`;n.classList.add('show');sfx('coin')}},100);
+  setTimeout(()=>{box.hidden=true},1700);
+}
+function rollDiceFx(v){
+  const ds=[$('dice'),$('dDice')];ds.forEach(d=>d.classList.add('rolling'));
+  let k=0;const h=setInterval(()=>{dice(rnd(6));if(++k>7){clearInterval(h);dice(v);ds.forEach(d=>d.classList.remove('rolling'))}},60);
+}
+function render(){
+  const src=isOld()?'board.png':'pixel.png';if($('boardImg').getAttribute('src')!==src){$('boardImg').setAttribute('src',src);memoOpen=null}
+  if(!busy){const nd=[P0pos(0),P0pos(1)];disp=nd;if(S.players.length&&!S.card&&S._fol!==S.seq){S._fol=S.seq;setTimeout(()=>follow(S.turn),50)}}
+  place();
+  const cur=S.players.length?P(S.turn):null;
+  const playing=S.phase==='play';
+  // 標題 & 網路
+  $('net').textContent=online?`連線中・你是${NAMES[+seat]}`:'單機';
+  $('net').className='net'+(online?' on':'');
+  $('boardTitle').textContent=S.mode==='mono'?'情侶大富翁.exe':'回憶模式.exe';
+  $('plTitle').textContent=S.mode==='mono'?'players.exe':'memory.exe';
+  // 輪到誰
+  if(cur){
+    [$('tAva'),$('dAva')].forEach(e=>{e.innerHTML=avaOf(S.turn);e.className='ava p'+S.turn});
+    const extra=cur.extra>0?`（加骰 ${cur.extra}）`:'';
+    $('tName').textContent=cur.name+extra;$('dName').textContent=cur.name+extra;
+    $('dSub').textContent=S.mode==='mono'?`愛心幣 ${cur.coins}`:'現在輪到';
+  }
+  if(!busy)dice(S.dice||6);
+  const mini=S.card&&minSeq===S.seq&&!busy;
+  const can=(playing&&!S.card&&canAct())||mini;
+  $('roll').disabled=$('dRoll').disabled=!can;
+  $('roll').textContent=$('dRoll').textContent=mini?'打開卡片':'擲骰子';
+  let w='';
+  if(online&&playing&&!S.card&&!canAct()&&!busy)w=`等 ${cur.name} 擲骰子…`;
+  $('wait').textContent=w;
+  tokens.forEach((t,i)=>t.classList.toggle('me',playing&&!busy&&i===S.turn&&!S.card));
+  // 地產標記
+  document.querySelectorAll('.flag').forEach(f=>f.remove());
+  for(const t in S.owner){const o=S.owner[t],[x,y]=PTS[t];const f=document.createElement('div');f.className='flag'+(o.h?' h':'');f.innerHTML=(o.h?HOUSE:HUT)(o.p?'#76C0EC':'#FF95A5');f.style.left=((x+75)/W*100)+'%';f.style.top=((y-70)/H*100)+'%';f.title=NAMES[o.p]+'的地';$('board').appendChild(f)}
+  // 落點提示
+  if(S.card&&S.card.p!=null&&!busy&&S.players.length){const[x,y]=PTS[P(S.card.p).pos];const pg=$('ping');pg.hidden=false;pg.style.left=(x/W*100)+'%';pg.style.top=(y/H*100)+'%'}else $('ping').hidden=true;
+  // 玩家
+  $('players').innerHTML=S.players.map((p,i)=>{
+    const chips=[];
+    if(S.sealed[i])chips.push('<span class="chip yel">慣用手封印中</span>');
+    p.badges.forEach(b=>chips.push(`<span class="chip ${i?'blue':'pink'}">${b.t}</span>`));
+    if(p.free)chips.push(`<span class="chip green">免罪金牌 ×${p.free}</span>`);
+    let main;
+    if(S.mode==='mono'){
+      const lands=Object.keys(S.owner).filter(t=>S.owner[t].p===i);
+      main=`<div class="row1"><b>${p.name}</b><span class="coins">${coin(p.coins)}</span></div><div class="meta">第 ${Math.min(p.laps+1,S.lapsGoal)} / ${S.lapsGoal} 圈・地 ${lands.length} 塊${lands.some(t=>S.owner[t].h)?'・小屋 '+lands.filter(t=>S.owner[t].h).length:''}</div>`;
+    }else{
+      const lin=i===S.lin;
+      main=`<div class="row1"><b>${p.name}</b><span class="meta">${lin?'＝ 林':'＝ 張'}</span></div>`+(lin?`<div class="meta">分數 ${p.score}</div><div class="scoreBoxes">${[0,1,2,3,4].map(k=>`<i class="${k<p.score%5?'on':''}"></i>`).join('')}</div>`:'<div class="meta">第 '+S.round+' 輪</div>');
+    }
+    return `<div class="pl"><div class="ava p${i}">${avaOf(i)}</div><div class="info">${main}<div class="chips">${chips.join('')}</div></div></div>`;
+  }).join('')||'<p class="meta">還沒開始</p>';
+  // 紀錄
+  $('log').innerHTML=S.log.slice(-40).reverse().map(x=>`<li>${esc(x)}</li>`).join('');$('log').start=S.log.length;
+  // 跑馬燈
+  const tk=`★ 遊戲遊戲遊戲 ★ ${NAMES[0]} ♡ ${NAMES[1]} ★ ${S.mode==='mono'?'情侶大富翁':'三周年回憶模式'} ★ 12.01 湖之栖之夜 ★ HOKKAIDO 2026 ★ `;
+  if($('ticker').dataset.t!==tk){$('ticker').dataset.t=tk;$('ticker').innerHTML=`<span>${tk}${tk}</span><span>${tk}${tk}</span>`}
+  memoRender();
+  if(typeof duoTurn==='function')duoTurn();
+  if(typeof critRender==='function')critRender();
+  $('board').classList.toggle('old',isOld());
+  {const m=memMode()?'old':'new';tokens.forEach((t,i)=>{if(t.dataset.m!==m){t.dataset.m=m;t.classList.toggle('mem',m==='old');t.querySelector('.spr').innerHTML=m==='old'?`<img class="mface" src="${OLD_IMG[i]}" alt="">`:SPRH[i];t.querySelector('.tag').textContent=m==='old'?OLD_NAMES[i]:NAMES[i]}})}
+  // 合作挑戰
+  if(S.mode==='mono'&&S.chal!=null&&S.phase!=='setup'){
+    const c=CHAL[S.chal],v=Math.min(chalVal(c),c.n),m=S.stats.meet||0;
+    $('chalWin').hidden=false;
+    $('chalBody').innerHTML=`<div class="meta">合作挑戰</div><div class="chalT">${c.t}${S.chalDone?' <span class="stamp ok">成功</span>':''}</div>
+      <div class="prog"><i style="width:${v/c.n*100}%"></i><span>${v} / ${c.n}</span></div>
+      <div class="combo"><span>貼貼連擊</span>${[1,2,3,4,5].map(k=>`<i class="${k<=m?'on':''}"></i>`).join('')}<span>${m>=5?'皇冠！':m>=3?'愛心雨！':''}</span></div>`;
+  }else $('chalWin').hidden=true;
+  tokens.forEach(t=>t.classList.toggle('crown',!!S.crown&&S.mode==='mono'));
+  // 對話框
+  renderModal();
+}
+function P0pos(i){return S.players.length?P(i).pos:0}
+
+let localModal=null;let resumeAsked=false; // 本機視窗（規則、旅行券、選單、座位）
+function openLocal(kind){localModal=kind;renderModal()}
+function renderModal(){
+  const m=$('modal'),sh=$('sheet');
+  let html='';
+  if(localModal)html=localView(localModal);
+  else if(!seat)html=seatView();
+  else if(!resumeAsked&&S.phase==='play'&&S.players.length)html=resumeView();
+  else if(S.phase==='setup')html=setupView();
+  else if(S.card&&!busy&&minSeq!==S.seq)html=cardHtml();
+  if(!html){m.classList.remove('show');sh.innerHTML='';sh.dataset.k='';return}
+  const key=html;
+  if(sh.dataset.k!==key){sh.innerHTML=html;sh.dataset.k=key;bindSheet()}
+  m.classList.add('show');
+  tickTimer();
+}
+function winHtml(bar,color,inner,x=true){return `<div class="bar ${color}"><i></i><i></i><i></i><span>${bar}</span>${x?'<button class="x" data-x="1" aria-label="關閉">×</button>':''}</div><div class="wbody">${inner}</div>`}
+function cardHtml(){
+  const c=S.card,v=cardView(c);
+  const color={deck:c.d==='c'?'green':'pink',toll:'yellow',buy:'',house:'',over:'navy',meet:'pink',round:'yellow',gift:'pink'}[c.k]??'';
+  const p=c.p!=null?P(c.p):null;
+  const mine=canAct();
+  let inner=(p?`<div class="who"><span class="ava p${c.p}">${avaOf(c.p)}</span>${p.name}</div>`:'')+`<h2>${v.title}</h2>${v.body}`;
+  if(v.timer)inner+=`<div class="timer" id="timer" data-sec="${v.timer}" data-at="${c.timerAt||''}">${v.timer}</div>`;
+  inner+='<div class="btns">'+v.btns.map(b=>`<button class="btn ${b.cls||''}" data-a="${b.id}" ${(b.dis||!mine)?'disabled':''}>${b.l}</button>`).join('')+'</div>';
+  if(!mine)inner+=`<p class="note">等 ${p?p.name:'對方'} 選擇…</p>`;
+  return winHtml(v.bar,color,inner);
+}
+let minSeq=-1;
+let timerH=null;
+function tickTimer(){
+  clearInterval(timerH);const el=$('timer');if(!el)return;
+  const sec=+el.dataset.sec,at=+el.dataset.at;
+  if(!at){el.textContent=sec;return}
+  let doneSfx=false;
+  const f=()=>{const left=Math.max(0,sec-(Date.now()-at)/1000);el.textContent=left>0?Math.ceil(left):'時間到';el.classList.toggle('done',left<=0);
+    if(left<=0){clearInterval(timerH);if(!doneSfx&&Date.now()-at<(sec+2)*1000){doneSfx=true;sfx('lap')}}};
+  f();timerH=setInterval(f,200);
+}
+function bindSheet(){
+  $('sheet').querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{
+    const a=b.dataset.a;
+    if(localModal||!S.card&&S.phase!=='over')return localAction(a,b);
+    if(a==='tickets'){openLocal('tickets');return}
+    if(a==='photo'){photoBack=null;showPhoto(S.memo);return}
+    act(()=>choose(a));
+  });
+  $('sheet').querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>localAction(b.dataset.l,b));
+  $('sheet').querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{sfx('blip');if(localModal){localModal=null}else if(S.card){minSeq=S.seq;flashToast('卡片先收起來，按下面的按鈕可以再打開')}renderModal();render()});
+  const inp=$('bet');if(inp)inp.oninput=()=>{ui.bet=inp.value};
+}
+
+/* ---------- 本機視窗 ---------- */
+function roomKey(){return (lsGet('gg_room')||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'')||'nokey'}
+function seatView(){
+  return winHtml('who_are_you.exe','',`<img class="hero" src="hero.svg" alt="" style="margin:-18px -18px 14px;width:calc(100% + 36px)"><h2>這台裝置是誰在玩？</h2>
+  <p class="note">兩支手機各選自己就能連線對戰；一起用同一台就選「兩人共用」</p>
+  <div class="btns"><button class="btn go" data-l="seat0">${NAMES[0]}</button><button class="btn blue" data-l="seat1">${NAMES[1]}</button><button class="btn yel" data-l="seatboth">兩人共用這台</button></div>
+  ${db?`<div class="opt"><label>房間密碼（兩支手機要填一模一樣，只能用英文字母和數字）</label><input type="text" id="room" maxlength="24" autocapitalize="off" autocomplete="off" placeholder="例如 hokkaido1201" value="${esc(lsGet('gg_room')||'')}"></div>`:'<p class="note">目前沒有連上 Firebase，只能共用同一台玩。</p>'}`,false);
+}
+function setupView(){
+  const s=ui;const sel=(k,v)=>s[k]===v?'sel':'';
+  let inner=`<img class="hero" src="hero.svg" alt="" style="margin:-18px -18px 10px;width:calc(100% + 36px)"><h2>開一局新遊戲</h2><div class="opt">
+   <label>玩法</label><div class="seg"><button class="btn ${sel('mode','mono')}" data-l="mode:mono">情侶大富翁</button><button class="btn ${sel('mode','memory')}" data-l="mode:memory">回憶模式（原版）</button></div>`;
+  if(s.mode==='mono'){
+    inner+=`<label>繞幾圈結束</label><div class="seg">${[2,3,5].map(n=>`<button class="btn ${s.laps===n?'sel':''}" data-l="laps:${n}">${n} 圈</button>`).join('')}</div>`;
+  }else{
+    inner+=`<label>誰當「林」？（原本規則只有林會得分）</label><div class="seg"><button class="btn ${s.lin===0?'sel':''}" data-l="lin:0">${OLD_NAMES[0]}</button><button class="btn ${s.lin===1?'sel':''}" data-l="lin:1">${OLD_NAMES[1]}</button></div>`;
+  }
+  inner+=`<label>誰先擲</label><div class="seg"><button class="btn ${sel('first','0')}" data-l="first:0">${(s.mode==='memory'?OLD_NAMES:NAMES)[0]}</button><button class="btn ${sel('first','1')}" data-l="first:1">${(s.mode==='memory'?OLD_NAMES:NAMES)[1]}</button><button class="btn ${sel('first','r')}" data-l="first:r">隨機</button></div></div>
+  <div class="btns"><button class="btn go" data-l="start">開始！</button></div>`;
+  return winHtml('new_game.exe','yellow',inner,false);
+}
+function rulesView(){
+  return winHtml('rules.txt','green',`<div class="rules">
+  <h3>情侶大富翁</h3><ul>
+  <li>每人 ${START_COINS} 枚愛心幣，輪流擲骰前進</li>
+  <li>要剛好走到終點才算繞完一圈（骰超過就往回走），領 ${SALARY} 枚薪水，下一回合從起點繼續走</li>
+  <li>有指令的格子都是地：先做指令，做完可以買下</li>
+  <li>踩到對方的地：要付過路費，也要做這格的指令</li>
+  <li>再踩到自己的地可以蓋愛心小屋，過路費變兩倍</li>
+  <li>右下角的雪人會跟著你們完成的指令越堆越高，做滿 12 個就堆好了</li>
+  <li>兩人走到同一格：後到的人收 10 枚，或偷親一下。一局撞在一起 3 次會下愛心雨，5 次兩個人都戴上皇冠</li>
+  <li>扭蛋機、螃蟹、企鵝會在遊戲中途突然醒來，頭上冒出大大的「!」。輪到你、還沒擲骰前點牠就有驚喜，每一局每隻一次：扭蛋機轉出一顆隨機扭蛋（機會卡、愛心幣、免罪金牌、情話、抱抱⋯⋯）、螃蟹給你 10 枚再幫你抽命運卡、企鵝帶你們一起搖擺換一面免罪金牌</li>
+  <li>連續兩次擲出同樣點數：默契大爆發，兩個人一起前進 2 格，走到的格子指令都要照做</li>
+  <li>每局開始會給一個合作挑戰，兩個人一起完成就會在回憶卡蓋上「挑戰成功」</li>
+  <li>左下空白格是「機會」、右下是「命運」，有些卡是北海道旅行券，到那天再兌換</li>
+  <li>反手吃下一餐：被封印的人下一餐用另一隻手吃；再踩到這格可以解除，或把封印傳給對方</li>
+  <li>有人繞完約定的圈數，這一局就結束；有人破產也會結束</li>
+  </ul>
+  <h3>回憶模式</h3><p>完全照當時的規則玩，要剛好走到終點才結束這一輪，大家回起點。</p>
+  <details><summary>當時的規則</summary><div class="in">1. 林比張先完成一輪，得兩分<br>2. 林前進到與張相同格子，得一分<br>3. 累計五分拿一份神奇獎勵<br>一起解鎖所有獎勵吧！！</div></details>
+  </div><div class="btns"><button class="btn ok" data-l="close">知道了</button></div>`);
+}
+function ticketsView(){
+  const list=S.tickets.slice().sort((a,b)=>(a.day[0]==='1'?a.day:'99').localeCompare(b.day[0]==='1'?b.day:'99'));
+  const inner=list.length?list.map(t=>{
+    const doer=t.kind==='gift'?opp(t.h):t.h,for_=t.kind==='gift'?t.h:opp(t.h);
+    return `<div class="tk ${t.done?'done':''}"><span class="ava p${doer}">${AVA[doer]}</span><div class="tx"><small>${t.day}・${t.t}・${t.kind==='both'?'兩個人一起':NAMES[doer]+' 為 '+NAMES[for_]+' 做'}</small>${t.d}</div><button class="btn ${t.done?'':'ok'}" data-l="tk:${t.id}">${t.done?'復原':'兌換了'}</button></div>`}).join('')
+   :'<p class="note">還沒有旅行券。抽到「機會」或「命運」的旅行券卡就會出現在這裡。</p>';
+  return winHtml('tickets.exe','pink',`<h2>北海道旅行券</h2>${inner}<div class="btns"><button class="btn" data-l="close">關閉</button></div>`);
+}
+function menuView(){
+  const h=S.history,w0=h.filter(x=>x.w===0).length,w1=h.filter(x=>x.w===1).length;
+  return winHtml('menu.exe','navy',`<h2>選單</h2><p>已經一起玩了 ${h.length} 局</p>
+  <div class="btns" style="flex-direction:column;align-items:stretch">
+  <button class="btn yel" data-l="newgame">開新的一局</button>
+  <button class="btn yel" data-l="book">徽章收集冊（${Object.keys(S.book||{}).length} / ${BADGES.length}）</button>
+  <button class="btn go" data-l="cards">回憶卡收藏（${h.filter(x=>x.memo).length}）</button>
+  <button class="btn" data-l="snow">下雪特效：${snowOn?'開':'關'}</button>
+  <button class="btn blue" data-l="reseat">換座位／連線設定</button>
+  <button class="btn" data-l="clear">清除全部紀錄</button>
+  <button class="btn" data-l="close">關閉</button></div>
+  <p class="note">開新局會保留旅行券和戰績</p>`);
+}
+function confirmView(){return winHtml('confirm.exe','pink','<h2>開新的一局？</h2><p>目前這局會結束（旅行券和戰績會保留）</p><div class="btns"><button class="btn" data-l="close">取消</button><button class="btn go" data-l="newok">確定</button></div>')}
+function cardsView(){
+  const list=S.history.filter(x=>x.memo).slice().reverse();
+  return winHtml('memory_cards.exe','pink',`<h2>回憶卡收藏</h2>${list.length?list.map(x=>memCard(x.memo)+`<div class="btns" style="margin:4px 0 14px"><button class="btn yel" data-l="png:${x.memo.n}">存成照片</button></div>`).join(''):'<p class="note">玩完一局大富翁就會收進一張回憶卡</p>'}<div class="btns"><button class="btn" data-l="menu">回選單</button></div>`);
+}
+function resumeView(){
+  const t=S.players.map(p=>`${p.name} ${S.mode==='mono'?coin(p.coins):''}`).join('　');
+  return winHtml('continue.exe','yellow',`<h2>要繼續上次那局嗎？</h2><p>${S.mode==='mono'?'情侶大富翁':'回憶模式'}・現在輪到 ${P(S.turn).name}</p><p class="note">${t}</p>
+  <div class="btns"><button class="btn" data-l="restart">重新開始</button><button class="btn go" data-l="resume">繼續上次那局</button></div>`,false);
+}
+function clearView(){return winHtml('clear.exe','pink','<h2>清除全部紀錄？</h2><p>回憶卡、旅行券、玩過的局數都會清空，目前這局也會結束。</p><p class="note">測試完、正式開始玩之前可以用這個</p><div class="btns"><button class="btn" data-l="close">取消</button><button class="btn go" data-l="clearok">確定清除</button></div>')}
+function bookView(){
+  const bk=S.book||{};
+  return winHtml('badges.exe','yellow',`<h2>徽章收集冊</h2><p class="note">已收集 ${Object.keys(bk).length} / ${BADGES.length}</p><div class="book">${BADGES.map(b=>{const on=!!bk[b.id];return `<div class="bdg ${on?'':'off'} ${S.newBadge===b.id?'new':''}"><div class="md">${medal(b,on)}<b>${on?b.ch:'?'}</b></div>${on?b.t:'？？？'}<small>${on?bk[b.id]:b.h}</small></div>`}).join('')}</div><div class="btns"><button class="btn" data-l="menu">回選單</button></div>`);
+}
+function infoView(){return winHtml('players.exe','green',`<div style="text-align:left">${$('players').innerHTML}</div><h3 style="text-align:left;font-weight:400;margin:14px 0 4px">遊戲紀錄</h3><ol class="log" style="text-align:left">${S.log.slice(-40).reverse().map(x=>`<li>${esc(x)}</li>`).join('')}</ol><div class="btns"><button class="btn" data-l="menu">回選單</button></div>`)}
+function localView(k){if(k==='photo')return photoView();if(k==='infoV')return infoView();return {rules:rulesView,tickets:ticketsView,menu:menuView,confirm:confirmView,cards:cardsView,clear:clearView,book:bookView}[k]()}
+
+function localAction(a,btn){
+  unlockAudio();sfx('blip');
+  if(a==='close'){localModal=null;renderModal();return}
+  if(a.startsWith('seat')){
+    const r=$('room');if(r){const v=r.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');if(a!=='seatboth'&&v.length<4){flashToast('房間密碼至少 4 個英文字母或數字');return}lsSet('gg_room',v)}
+    seat=a.slice(4);lsSet('gg_seat',seat);localModal=null;connect();return}
+  if(a==='resume'){resumeAsked=true;renderModal();render();return}
+  if(a==='restart'){resumeAsked=true;const k=S;S=blank(k);S.seq=k.seq+1;S.animSeq=-1;save();render();return}
+  if(a==='clear'){localModal='clear';renderModal();return}
+  if(a==='clearok'){localModal=null;resumeAsked=true;const k=S;S=blank();S.seq=(k.seq||0)+1;S.animSeq=-1;save();render();flashToast('紀錄都清空了');return}
+  if(a.startsWith('png:')){const n=+a.slice(4);const h=S.history.find(x=>x.memo&&x.memo.n===n);if(h){photoBack=localModal;showPhoto(h.memo)}return}
+  if(a==='closephoto'){localModal=photoBack||null;photoBack=null;$('sheet').dataset.k='';renderModal();return}
+  if(a==='savepng'){(async()=>{try{await dl.save({filename:photoName,data:photoBlob});flashToast('存好囉')}catch(e){if(e&&e.code!=='declined')flashToast('這裡沒辦法下載，請用長按圖片儲存')}})();return}
+  if(a==='infoV'){localModal='infoV';$('sheet').dataset.k='';renderModal();return}
+  if(a==='book'){localModal='book';$('sheet').dataset.k='';renderModal();return}
+  if(a==='cards'||a==='menu'){localModal=a;$('sheet').dataset.k='';renderModal();return}
+  if(a==='snow'){snowOn=!snowOn;lsSet('gg_snow',snowOn?'1':'0');$('sheet').dataset.k='';renderModal();return}
+  if(a==='reseat'){localModal=null;seat='';lsSet('gg_seat','');renderModal();return}
+  if(a==='newgame'){localModal='confirm';renderModal();return}
+  if(a==='newok'){localModal=null;const k=S;S=blank(k);S.seq=k.seq+1;S.animSeq=-1;save();render();return}
+  if(a.startsWith('tk:')){const id=a.slice(3);S=clone(S);const t=S.tickets.find(x=>x.id===id);if(t)t.done=!t.done;if(!S.book)S.book={};if(!S.life)S.life={};checkBook();S.seq++;save();render();$('sheet').dataset.k='';renderModal();if(S.toasts&&S.toasts.length){flashToast(S.toasts.pop());S.toasts=[]}return}
+  const [k,v]=a.split(':');
+  if(k==='betType'){ui.betType=v;ui.bet=''}else if(k==='betx'){ui.bet=v}else if(k==='mode'){ui.mode=v}else if(k==='laps'){ui.laps=+v}else if(k==='lin'){ui.lin=+v}else if(k==='first'){ui.first=v}
+  if(a==='start'){startGame();return}
+  $('sheet').dataset.k='';renderModal();
+}
+function startGame(){
+  resumeAsked=true;
+  const k=S;S=blank(k);
+  S.mode=ui.mode;S.lapsGoal=ui.laps;S.bet='';S.lin=ui.lin;
+  S.players=[mkPlayer(0),mkPlayer(1)];
+  if(S.mode==='memory')S.players.forEach((p,i)=>p.name=OLD_NAMES[i]);
+  S.turn=S.starter=ui.first==='r'?Math.floor(Math.random()*2):+ui.first;
+  S.phase='play';S.seq=(k.seq||0)+1;S.animSeq=-1;
+  {const n=new Date();S.startDate=`${n.getFullYear()}.${String(n.getMonth()+1).padStart(2,'0')}.${String(n.getDate()).padStart(2,'0')}`}
+  if(S.mode==='mono'){S.chal=Math.floor(Math.random()*CHAL.length);S.chalDone=false}else{life('memory');checkBook()}
+  log(`${S.mode==='mono'?'情侶大富翁':'回憶模式'}開始！${P(S.turn).name} 先擲`);
+  disp=[0,0];save();render();sfx('lap');
+}
+
+/* ================= 右下角：一起堆雪人 ================= */
+const LINES={
+  idle:['今天也好開心','下一步會撞在一起嗎？','我想去手稻','外面好像在下雪','你們是最強搭檔','快擲骰子！','多做幾個指令，我就長大了','好冷，牽手'],
+  dice:['衝呀！','拜託大一點','會是幾點呢'],
+  meet:['貼貼～','好巧好巧！','抓到你了'],
+  buy:['蓋房子！','買買買'],
+  lap:['又繞一圈啦！','領薪水囉'],
+  bad:['嗚嗚…','沒關係下次'],
+  win:['好好玩！再一局！','今天的回憶又多一張'],
+  card:['抽到什麼了？','好緊張'],
+  grow:['我長大了一點！','再堆高一點','謝謝你們']
+};
+let bubH=null,lastSay=0;
+function say(who,kind,txt){
+  const b=$('bubble'),list=LINES[kind]||LINES.idle;b.textContent='雪人：'+(txt||list[Math.floor(Math.random()*list.length)]);
+  b.className='bubble';b.hidden=false;lastSay=Date.now();clearTimeout(bubH);bubH=setTimeout(()=>b.hidden=true,2600);
+  const el=$('build');el.classList.remove('jump');void el.offsetWidth;el.classList.add('jump');
+}
+function duoWalk(){}
+function duoHop(){}
+const BUILD_N=12;let lastStage=-1;
+function snowSvg(st){
+  // 跟北海道網站同一隻雪人，照堆雪人的順序一步一步出現
+  const R=CRIT.snow,H0=R.length,W0=R[0].length,INK='3E3A39',WH='FFFFFF';
+  const G=R.map(r=>r.map(()=>''));
+  if(st<5){
+    const r=[1.6,2.6,3.6,4.8,6][st],cx=16.5,cy=25-r;
+    for(let y=0;y<H0;y++)for(let x=0;x<W0;x++){const d=Math.hypot(x+.5-cx,y+.5-cy);if(d<=r)G[y][x]=d>r-1?INK:WH}
+    return gridSvg(G);
+  }
+  const rightArm=new Set(['27,12','26,13','27,13','25,14','26,14','24,15','25,15']);
+  const part=(x,y)=>{const k=x+','+y;
+    if(rightArm.has(k))return 'arm';
+    if(x<=6&&y<=12)return 'prop';
+    if(y<=7&&x>=12)return 'hat';
+    if(y>=15&&x>=8)return 'body';
+    if(y>=8&&y<=14&&x>=12&&x<=21)return 'head';
+    if(y>=10&&y<=16&&x>=6&&x<=11)return 'arm';
+    return 'body';};
+  const need={body:5,head:6,arm:10,hat:12,prop:10};
+  for(let y=0;y<H0;y++)for(let x=0;x<W0;x++){
+    let c=R[y][x];if(!c)continue;const pt=part(x,y);if(st<need[pt])continue;
+    if(pt==='head'&&st<7&&(y===10||y===11)&&x>=13&&x<=20)c=WH;          // 眼睛
+    if(c==='FFA45B'&&st<8)c=WH;                                          // 紅蘿蔔鼻子
+    if(pt==='body'&&st<9&&(y===18||y===20)&&x>=15&&x<=18)c=WH;           // 鈕扣
+    if(c==='FF95A5'&&pt!=='prop'&&st<11)c=WH;                            // 圍巾
+    G[y][x]=c;
+  }
+  if(st>=6&&st<12)for(let x=14;x<=19;x++)G[7][x]=INK;                    // 沒戴帽子時補上頭頂
+  if(st===5)for(let x=0;x<W0;x++){for(let y=0;y<H0;y++){if(G[y][x]){G[y][x]=INK;break}}}  // 只有底座時補上上緣
+  return gridSvg(G);
+}
+const STAGE_TXT=['滾一顆小雪球','雪球越滾越大','再滾大一點','還要再大一點','底座快好了','底座完成','放上頭','戴上眼鏡','紅蘿蔔鼻子','石頭鈕扣','伸出手臂、拿著愛心','圍上圍巾','戴上帽子，完成！'];
+function buildRender(){
+  const t=S&&S.phase!=='setup'?(S.stats.task||0):0,st=Math.min(BUILD_N,t);
+  if(st!==lastStage){$('bs').innerHTML=snowSvg(st);if(lastStage>=0&&st>lastStage)say(0,null,STAGE_TXT[st]+'！');lastStage=st}
+  $('bl').textContent=st>=BUILD_N?'雪人完成！':`堆雪人 ${st}/${BUILD_N}`;
+  $('build').title=STAGE_TXT[st];
+  $('build').classList.toggle('done',st>=BUILD_N||!!(S&&S.chalDone));
+}
+function duoTurn(){buildRender();ledRender();}
+function duoReact(fxs){
+  const k=fxs.includes('win')?'win':fxs.includes('hearts')?'meet':fxs.includes('lap')?'lap':fxs.includes('buy')?'buy':(fxs.includes('bad')||fxs.includes('pay'))?'bad':fxs.includes('card')?'card':null;
+  if(k)say(0,k);
+  if(fxs.includes('hearts')||fxs.includes('kiss'))onsenLove();
+}
+$('build').onclick=()=>{unlockAudio();sfx('blip');say(0,'idle')};
+setInterval(()=>{if(!busy&&Date.now()-lastSay>11000&&!document.hidden&&S&&S.phase!=='setup')say(0,'idle')},3000);
+function ledRender(){}
+function onsenLove(){}
+/* ================= 雪人、螃蟹、企鵝 ================= */
+const CRITS={gacha:{name:'扭蛋機',t:'扭蛋時間',d:'',btn:'打開扭蛋',
+    idle:['（喀啦喀啦）','還沒準備好喔','等我亮起來再來轉'],used:['今天的扭蛋轉完了','（休息中）'],ready:'轉我轉我！'},
+  crab:{name:'螃蟹',t:'螃蟹夾夾',d:'螃蟹橫著走過來，先夾給你 10 枚愛心幣壓壓驚……然後順手幫你抽了一張命運卡',btn:'好吧，抽！',
+    idle:['夾夾！','我不是要被吃的那隻','場外市場見！','橫著走比較快'],used:['今天已經夾過了','夾累了 z z'],ready:'要不要給我夾一下'},
+  peng:{name:'企鵝',t:'企鵝搖搖',d:'企鵝邀請你們兩個，一起學企鵝搖擺走路 10 秒！完成可以拿到一面免罪金牌',btn:'搖完了',sec:10,
+    idle:['嗨！旭山見～','要不要散步？','搖搖擺擺','我也想去北海道'],used:['今天搖夠了','我在練習搖擺 z z'],ready:'一起來搖擺'}};
+['gacha','crab','peng'].forEach(k=>{$('c_'+k).querySelector('.cs').innerHTML=gridSvg(CRIT[k]);$('c_'+k).onclick=()=>critClick(k)});
+let critH={};
+function critSay(k,txt){const el=$('c_'+k),b=el.querySelector('.cb');b.textContent=txt;b.hidden=false;clearTimeout(critH[k]);critH[k]=setTimeout(()=>b.hidden=true,2400);el.classList.remove('jump');void el.offsetWidth;el.classList.add('jump')}
+function critReady(k){return S&&S.mode==='mono'&&S.phase==='play'&&!S.card&&!busy&&(S.critOn||{})[k]&&!(S.crit||{})[k]&&canAct()}
+function critClick(k){
+  unlockAudio();sfx('blip');const c=CRITS[k];
+  if(critReady(k)){act(()=>{S.crit=S.crit||{};S.crit[k]=1;S.critOn[k]=0;life('crit_'+k);S.queue.push({k:'crit',p:S.turn,c:k,r:Math.floor(Math.random()*GACHA.length)});log(`${P(S.turn).name} 找${c.name}玩：${c.t}`)});return}
+  const used=S&&(S.crit||{})[k],awake=S&&(S.critOn||{})[k];if(awake&&!used){critSay(k,S.card||busy?'等一下再找我':canAct()?c.ready:'輪到你的時候再來找我');return}const list=used?c.used:c.idle;critSay(k,list[Math.floor(Math.random()*list.length)]);
+}
+function critRender(){['gacha','crab','peng'].forEach(k=>{const el=$('c_'+k);const on=!!(S&&S.mode==='mono'&&S.phase==='play');const used=on&&!!(S.crit||{})[k];const awake=on&&!used&&!!(S.critOn||{})[k];el.classList.toggle('used',used);el.classList.toggle('awake',awake);el.classList.toggle('ready',critReady(k))})}
+/* ================= 8-bit 音效 ================= */
+let ac=null;
+function unlockAudio(){try{if(!ac){const A=window.AudioContext||window.webkitAudioContext;if(A)ac=new A()}if(ac&&ac.state==='suspended')ac.resume();if(typeof startMusic==='function')startMusic()}catch(e){}}
+function tone(f,d,t=0,type='square',v=.05){if(!ac||mute)return;const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(ac.destination);const s=ac.currentTime+t;g.gain.setValueAtTime(v,s);g.gain.exponentialRampToValueAtTime(.0001,s+d);o.start(s);o.stop(s+d+.02)}
+function sfx(n){
+  if(!ac||mute)return;
+  const seq={
+    blip:[[880,.05]],step:[[523,.04],[784,.06,.04]],jump:[[392,.08],[523,.08,.08],[784,.12,.16]],
+    dice:[[300,.03],[500,.03,.06],[400,.03,.12],[650,.03,.18],[350,.03,.24],[700,.03,.30]],
+    coin:[[988,.07],[1319,.18,.07]],pay:[[523,.08],[392,.14,.09]],
+    buy:[[523,.07],[659,.07,.07],[784,.07,.14],[1047,.2,.21]],
+    bad:[[392,.1],[330,.1,.1],[262,.22,.2]],card:[[784,.06],[1175,.12,.07]],
+    lap:[[523,.1],[659,.1,.1],[784,.1,.2],[1047,.25,.3]],
+    win:[[523,.12],[523,.12,.14],[523,.12,.28],[659,.3,.42],[587,.12,.76],[659,.12,.9],[784,.45,1.04]],
+  }[n];
+  if(seq)seq.forEach(([f,d,t])=>tone(f,d,t||0));
+}
+
+/* ================= 小工具 ================= */
+let toastH=null;
+function flashToast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastH);toastH=setTimeout(()=>t.classList.remove('show'),2000)}
+function hearts(n){for(let k=0;k<n;k++){const b=document.createElement('div');b.className='bit heartbit';b.innerHTML=HEARTPX;b.style.left=Math.random()*100+'vw';b.style.animationDuration=(2+Math.random()*2)+'s';b.style.animationDelay=Math.random()*.8+'s';document.body.appendChild(b);setTimeout(()=>b.remove(),5000)}}
+function bits(n){const cs=['var(--pink)','var(--sky)','var(--yellow)','var(--green)'];for(let k=0;k<n;k++){const b=document.createElement('div');b.className='bit';b.style.left=Math.random()*100+'vw';b.style.background=cs[k%4];b.style.animationDuration=(1.6+Math.random()*1.6)+'s';b.style.animationDelay=Math.random()*.5+'s';document.body.appendChild(b);setTimeout(()=>b.remove(),4000)}}
+
+/* ================= 連線 ================= */
+async function connect(){
+  if(unsub){unsub();unsub=null}
+  online=false;gref=null;
+  if(db&&(seat==='0'||seat==='1')){
+    online=true;gref=db.doc('heartgame/'+roomKey());
+    let first=true;
+    const tmo=setTimeout(()=>{if(first)flashToast('連線有點慢，再等一下…')},10000);
+    unsub=gref.onSnapshot(snap=>{
+      clearTimeout(tmo);
+      if(snap.exists){
+        let r=null;try{r=JSON.parse(snap.data().state)}catch(e){}
+        if(r&&(!S||r.seq!==S.seq||first)){
+          const wasFirst=first;S=r;S.book=S.book||{};S.life=S.life||{};if(wasFirst){played=S.seq;resumeAsked=!(S.phase==='play'&&S.players.length);}show();
+        }
+      }else if(first){S=blank();resumeAsked=true;render();}
+      first=false;
+    },e=>{flashToast('連線中斷，改成單機');online=false;loadLocal();render()});
+    render();
+  }else{loadLocal();render();}
+}
+function loadLocal(){
+  let s=null;try{s=JSON.parse(lsGet('gg_local_v3'))}catch(e){}
+  S=s&&s.v===2?s:blank();played=S.seq;
+  S.book=S.book||{};S.life=S.life||{};
+  resumeAsked=!(S.phase==='play'&&S.players.length);
+}
+
+/* ================= 啟動 ================= */
+$('roll').onclick=$('dRoll').onclick=()=>{if(S.card&&minSeq===S.seq){minSeq=-1;sfx('blip');render();return}act(roll)};
+let memoOpen=null;
+$('memoBtn').onclick=()=>{memoOpen=!$('memo').classList.contains('open');sfx('blip');memoRender()};
+function memoRender(){const o=memoOpen===null?isOld():memoOpen;$('memo').classList.toggle('pix',!isOld());$('memo').classList.toggle('open',o);$('memoBtn').textContent=o?'－ 收起當時的規則':'＋ 當時的規則'}
+function isOld(){return !!S&&S.mode==='memory'&&S.phase!=='setup'}
+$('btnRules').onclick=()=>{unlockAudio();openLocal('rules')};
+$('btnTickets').onclick=()=>{unlockAudio();openLocal('tickets')};
+$('btnMenu').onclick=()=>{unlockAudio();openLocal('menu')};
+function soundBtn(){$('btnSound').textContent=mute?'音效 關':'音效 開';$('btnSound').classList.toggle('on',!mute)}
+let musicOn=lsGet('gg_music')!=='0';
+function musicBtn(){$('btnMusic').textContent=musicOn?'音樂 開':'音樂 關';$('btnMusic').classList.toggle('on',musicOn)}
+$('btnMusic').onclick=()=>{musicOn=!musicOn;lsSet('gg_music',musicOn?'1':'0');musicBtn();unlockAudio();if(musicOn)startMusic();else stopMusic()};
+musicBtn();
+/* ---------- 背景音樂（原創 8-bit 小曲） ---------- */
+const NF=n=>{if(!n||n==='-')return 0;const m={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[n[0]];const sh=n[1]==='#'?1:0;const o=+n.slice(sh?2:1);return 440*Math.pow(2,(m+sh+(o+1)*12-69)/12)};
+const MEL='E5 G5 C6 G5 A5 G5 E5 - F5 A5 G5 E5 D5 - - - E5 G5 C6 G5 A5 C6 B5 A5 G5 E5 D5 E5 C5 - - - A4 C5 F5 C5 D5 E5 F5 - G4 B4 D5 G5 F5 E5 D5 - E5 G5 C6 G5 A5 G5 F5 E5 D5 G4 B4 D5 C5 - - -'.split(' ');
+const BAS='C3 - G2 - F2 - C3 - F2 - G2 - G2 - - - C3 - G2 - F2 - A2 - G2 - G2 - C3 - - - F2 - C3 - F2 - A2 - G2 - D3 - G2 - B2 - C3 - G2 - F2 - C3 - G2 - G2 - C3 - - -'.split(' ');
+let musH=null,musStep=0,musT=0;const STEP=0.2;
+function startMusic(){
+  if(!ac||!musicOn||musH||document.hidden)return;
+  musT=ac.currentTime+.1;
+  musH=setInterval(()=>{
+    while(musT<ac.currentTime+.4){
+      const i=musStep%MEL.length;let len=1;while(MEL[(i+len)%MEL.length]==='-'&&len<4)len++;
+      if(MEL[i]!=='-')mtone(NF(MEL[i]),STEP*len*.9,musT,'square',.018);
+      const j=musStep%BAS.length;let bl=1;while(BAS[(j+bl)%BAS.length]==='-'&&bl<4)bl++;
+      if(BAS[j]!=='-')mtone(NF(BAS[j]),STEP*bl*.85,musT,'triangle',.05);
+      musStep++;musT+=STEP;
+    }
+  },100);
+}
+function stopMusic(){clearInterval(musH);musH=null}
+function mtone(f,d,at,type,v){const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,at);g.gain.setValueAtTime(v,at+d*.7);g.gain.linearRampToValueAtTime(.0001,at+d);o.connect(g);g.connect(ac.destination);o.start(at);o.stop(at+d+.02)}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMusic();else startMusic()});
+/* ---------- 像素雪 ---------- */
+let snowOn=lsGet('gg_snow')!=='0';
+(()=>{const cv=$('snow'),cx=cv.getContext('2d');let fl=[],W0=0,H0=0;
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function size(){W0=cv.width=innerWidth;H0=cv.height=innerHeight;const n=Math.round(Math.min(70,W0*H0/16000));fl=[...Array(n)].map(()=>({x:Math.random()*W0,y:Math.random()*H0,s:[3,3,4,5][Math.floor(Math.random()*4)],v:.3+Math.random()*.6,ph:Math.random()*6}))}
+  size();addEventListener('resize',size);
+  let last=0;
+  function f(t){requestAnimationFrame(f);if(t-last<50)return;last=t;cx.clearRect(0,0,W0,H0);if(!snowOn||reduce)return;
+    for(const p of fl){p.y+=p.v*2;p.ph+=.03;const x=Math.round((p.x+Math.sin(p.ph)*10)/2)*2,y=Math.round(p.y/2)*2;
+      if(p.y>H0){p.y=-6;p.x=Math.random()*W0}
+      cx.fillStyle='#A9D4F0';cx.fillRect(x-1,y-1,p.s+2,p.s+2);cx.fillStyle='#fff';cx.fillRect(x,y,p.s,p.s)}}
+  requestAnimationFrame(f);})();
+$('btnSound').onclick=()=>{mute=!mute;lsSet('gg_mute',mute?'1':'0');soundBtn();unlockAudio();sfx('blip')};
+document.addEventListener('pointerdown',unlockAudio,{once:true});
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&!$('modal').classList.contains('show')){e.preventDefault();act(roll)}});
+soundBtn();
+loadLocal();dice(6);render();
+if(seat&&seat!=='both')renderModal();
+(async()=>{
+  try{
+    const cfg=window.FIREBASE_CONFIG;
+    if(window.firebase&&cfg&&cfg.apiKey&&!/貼上/.test(cfg.apiKey)){
+      if(!firebase.apps.length)firebase.initializeApp(cfg);
+      const rt=firebase.database();
+      db={doc:path=>({
+        onSnapshot:(next,err)=>{const ref=rt.ref(path);const h=snap=>next({exists:snap.exists(),data:()=>snap.val()});ref.on('value',h,e=>err&&err(e));return()=>ref.off('value',h)},
+        set:data=>rt.ref(path).set(data)
+      })};
+    }
+  }catch(e){db=null}
+  if(db&&(seat==='0'||seat==='1'))connect();
+  else if(!db&&(seat==='0'||seat==='1')){ /* 沒有雲端：改共用 */ }
+  renderModal();
+})();
+</script>
+</body>
+</html>
