@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="遊戲遊戲遊戲">
 <meta name="theme-color" content="#425B9A">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <style>
 @font-face{font-family:"Cubic11";src:url(cubic11.woff2) format("woff2");font-display:block}
@@ -1468,10 +1468,10 @@ if(seat&&seat!=='both')renderModal();
     const cfg=window.FIREBASE_CONFIG;
     if(window.firebase&&cfg&&cfg.apiKey&&!/貼上/.test(cfg.apiKey)){
       if(!firebase.apps.length)firebase.initializeApp(cfg);
-      const rt=firebase.database();
+      const fs=firebase.firestore();
       db={doc:path=>({
-        onSnapshot:(next,err)=>{const ref=rt.ref(path);const h=snap=>next({exists:snap.exists(),data:()=>snap.val()});ref.on('value',h,e=>err&&err(e));return()=>ref.off('value',h)},
-        set:data=>rt.ref(path).set(data)
+        onSnapshot:(next,err)=>fs.doc(path).onSnapshot(snap=>next({exists:snap.exists,data:()=>snap.data()}),e=>err&&err(e)),
+        set:data=>fs.doc(path).set(data)
       })};
     }
   }catch(e){db=null}
